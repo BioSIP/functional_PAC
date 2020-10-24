@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from scipy import signal
 import os
 from pqdm.processes import pqdm #Parallel TQDM library
 
@@ -30,7 +31,7 @@ from pqdm.processes import pqdm #Parallel TQDM library
 #         IMFsn[i,:]=IMFn
 #     return IMFsn, peakvalue_std 
 
-def normalize_IMF(IMF, thr=0.05, max_iter=100, current_iter=0):
+def normalize_IMF(IMF, thr=0.05, max_iter=20, current_iter=0):
     envelope = np.abs(signal.hilbert(IMF))
     normalized_imf = np.divide(IMF, envelope)
     peaks = signal.find_peaks(envelope)[0]
@@ -52,14 +53,15 @@ def hilbert_t(filename, reduced_imfs_path = "../data/reduced_imfs", save_path = 
             normalized_imfs = np.apply_along_axis(normalize_IMF, -1, channel)
         else:
             normalize_imfs = channel
-        #Compute hilbert transforms in all IMFs of the current channel
+        #Compute hilbert transforms of the IMFs of the current channel
         ht_analytics.append(signal.hilbert(normalized_imfs))
-    np.save(os.path.join(save_path, filename) , np.array(ht_analytics))
+    np.save(os.path.join(save_path, filename) , np.array(ht_analytics, dtype=object))
  
 if __name__ == "__main__":
     
     reduced_imfs_path = "../data/reduced_imfs"
     save_path = "../data/hilbert"
     reduced_imfs_files = [file for file in os.listdir(reduced_imfs_path) if file.endswith('.npy')]
-    
+#     hilbert_t(reduced_imfs_files[0]) #For a single file cointainig IMFs
     _ = pqdm(reduced_imfs_files, hilbert_t, n_jobs=10)
+    
