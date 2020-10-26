@@ -5,10 +5,11 @@ import os
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from itertools import combinations_with_replacement
+import pickle
 
 """This script saves a dictionary with the MVL values in the form
-key: tuple (channel_x, channel_y)
-values: matrix -> shape (#imf of channel x, # imf of channel y, 3) -> last shape item is (MVL, frequency1, frequency2)
+key: tuple: (channel_x, channel_y)
+values: matrix -> shape ((#hilbert_transforms of channel x, #hilbert_transforms of channel y, 3) -> last shape item is (MVL, frequency1, frequency2)
 """
 
 
@@ -52,7 +53,7 @@ def MVL_Zscore(phase, amp):
     return m_raw
 
 def get_pac(index_channel_x, index_channel_y, hilbert_data):
-        """Input: channel index: int hilber_data: shape ->(channel, imfs, samples)"""
+        """Input: channel index: int, hilber_data: shape ->(channel, imfs, samples)"""
         channel_x = hilbert_data[index_channel_x]
         channel_y = hilbert_data[index_channel_y]
         
@@ -77,9 +78,13 @@ def get_pac(index_channel_x, index_channel_y, hilbert_data):
                     
                 ce_y = centroide_espectral(instantaneous_frequency_y, amplitude_envelope_y)
                 
+                mvl = 0
+                
                 if ce_x < ce_y: #Low frequencies phase modulates the amplitude of high frequencies
                     mvl = MVL_Zscore(instantaneous_phase_x, amplitude_envelope_y)
-                    pac[ht_index_x, ht_index_y] = np.array([mvl, ce_x, ce_y])
+                    
+                pac[ht_index_x, ht_index_y] = np.array([mvl, ce_x, ce_y])
+                
         return (index_channel_x, index_channel_y),pac
     
 if __name__ == "__main__":
@@ -95,9 +100,8 @@ if __name__ == "__main__":
             continue
         hilbert_t = np.load(os.path.join(hilbert_transform_path,filename), allow_pickle=True)
         channels_combinations = combinations_with_replacement(range(hilbert_t.shape[0]), r = 2)
-        #Dictionary: keys -> (channel_x, channel_y)
-        #            values -> pac matrix
-        PACs = {}
+        
+        PACs = {} #Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 
         parallel_pacs = Parallel(n_jobs=10)(delayed(get_pac)(x, y, hilbert_t) for x,y in list(channels_combinations))
 
