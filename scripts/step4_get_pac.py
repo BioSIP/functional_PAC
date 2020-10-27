@@ -10,7 +10,7 @@ import pickle
 
 """This script saves a dictionary with the MVL values in the form
 key: tuple: (channel_x, channel_y)
-values: matrix -> shape ((#hilbert_transforms of channel x, #hilbert_transforms of channel y, 3) -> last shape item is (MVL, frequency1, frequency2)
+values: matrix -> shape ((#hilbert_transforms of channel x, #hilbert_transforms of channel y, 6) -> last shape item is (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2)
 """
 
 
