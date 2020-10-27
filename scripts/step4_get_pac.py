@@ -5,6 +5,7 @@ import os
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from itertools import combinations_with_replacement
+from scipy.stats import shapiro
 import pickle
 
 """This script saves a dictionary with the MVL values in the form
@@ -45,12 +46,14 @@ def MVL_Zscore(phase, amp):
     for k in skip:
         surrogate_amplitude = np.concatenate((amp[k:], amp[:k]))
         surrogate_m.append(MVL(phase, surrogate_amplitude))        
+    
+#     if shapiro(surrogate_m)[0] < .9: print("Not normal") #Check if surrogates distribution is normal
+        
+    mean_surrogate =  np.mean(surrogate_m)
+    std_surrogate = np.std(surrogate_m)
+    m_norm = (m_raw - mean_surrogate) / std_surrogate
 
-    m_norm = (m_raw - np.mean(surrogate_m)) / np.std(surrogate_m)
-
-    if m_norm < 2.326:  # 99
-        m_raw = 0
-    return m_raw
+    return np.array([m_raw, m_norm, mean_surrogate, std_surrogate])
 
 def get_pac(index_channel_x, index_channel_y, hilbert_data):
         """Input: channel index: int, hilber_data: shape ->(channel, imfs, samples)"""
@@ -58,8 +61,8 @@ def get_pac(index_channel_x, index_channel_y, hilbert_data):
         channel_y = hilbert_data[index_channel_y]
         
         fs = 500
-        #Store (MVL, Freq1, Freq2) for every hilbert transform in every channel
-        pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 3)) 
+        #Store (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2) for every hilbert transform
+        pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 6)) 
         
         #Iteration over Hilbert Transforms in each channel
         for ht_index_x, imf_ht_x in enumerate(channel_x):
@@ -78,12 +81,12 @@ def get_pac(index_channel_x, index_channel_y, hilbert_data):
                     
                 ce_y = centroide_espectral(instantaneous_frequency_y, amplitude_envelope_y)
                 
-                mvl = 0
+                mvl = np.zeros(4)
                 
                 if ce_x < ce_y: #Low frequencies phase modulates the amplitude of high frequencies
                     mvl = MVL_Zscore(instantaneous_phase_x, amplitude_envelope_y)
                     
-                pac[ht_index_x, ht_index_y] = np.array([mvl, ce_x, ce_y])
+                pac[ht_index_x, ht_index_y] = np.append(mvl,np.array([ce_x, ce_y]))
                 
         return (index_channel_x, index_channel_y),pac
     
