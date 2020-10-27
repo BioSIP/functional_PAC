@@ -21,8 +21,16 @@ def centroide_espectral(frec, amp):
     centroide = num / den
     return centroide
 
+def ce_par(freq,amp):
+    num = freq*amp[:,:-1]
+    centroids = num.sum(axis=1)/amp.sum(axis=1)
+    return centroids
+
 def MVL(phase, amp):
     return np.abs(np.mean(amp * np.exp(1j * phase)))
+
+def MVL_par(phase, amp):
+    return np.abs(np.inner(amp, np.exp(1j*phase))/amp.shape[1])
 
 # Canolty RT (2006) High Gamma Power Is Phase-Locked to Theta. science
 def MVL_Zscore(phase, amp):
@@ -54,6 +62,35 @@ def MVL_Zscore(phase, amp):
     m_norm = (m_raw - mean_surrogate) / std_surrogate
 
     return np.array([m_raw, m_norm, mean_surrogate, std_surrogate])
+
+def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, numsurrogate=200):
+        channel_x = hilbert_data[index_channel_x]
+        channel_y = hilbert_data[index_channel_y]
+        pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 6)) 
+
+        amplitude_envelope_x = np.abs(channel_x)
+        amplitude_envelope_y = np.abs(channel_y)
+        insta_phase_x = np.unwrap(np.angle(channel_x))
+        insta_phase_y = np.unwrap(np.angle(channel_y))
+        insta_freq_x = np.diff(insta_phase_x, axis=1)*fs/(2*np.pi)
+        insta_freq_y = np.diff(insta_phase_y, axis=1)*fs/(2*np.pi)
+        ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
+                                ce_par(insta_freq_y, amplitude_envelope_y))
+        pac[:,:,4] = ce_x.T # por convención
+        pac[:,:,5] = ce_y.T
+        mvl_raw = MVL_par(insta_phase_x, amplitude_envelope_y)
+
+        numpoints = insta_phase_x.shape[1]
+        skip = np.random.randint(fs, numpoints-fs, size=numsurrogate)
+        mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
+        for i, k in enumerate(skip): 
+            surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
+            mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
+        mvl_u = mvls.mean(axis=2)
+        mvl_s = mvls.std(axis=2)
+        mvl_z = (mvl_raw - mvl_u)/mvl_s
+        pac[:,:,:4] = np.stack((mvl_raw, mvl_z, mvl_u, mvl_s)).transpose((2,1,0))
+        return (index_channel_x, index_channel_y),pac
 
 def get_pac(index_channel_x, index_channel_y, hilbert_data):
         """Input: channel index: int, hilber_data: shape ->(channel, imfs, samples)"""
@@ -106,7 +143,7 @@ if __name__ == "__main__":
         
         PACs = {} #Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 
-        parallel_pacs = Parallel(n_jobs=10)(delayed(get_pac)(x, y, hilbert_t) for x,y in list(channels_combinations))
+        parallel_pacs = Parallel(n_jobs=10)(delayed(get_pac_par)(x, y, hilbert_t) for x,y in list(channels_combinations))
 
         for key, pac in parallel_pacs:
             PACs[key] = pac                   
@@ -114,4 +151,18 @@ if __name__ == "__main__":
         with open(os.path.join(save_path, "{}.pickle".format(filename[:-4])), 'wb') as handle:
             pickle.dump(PACs, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+'''
+# Código para cuantificar mejoras en PAC. 
+repeats = 50
+starttime = timeit.default_timer()
+for _ in range(repeats):
+    pac = get_pac_par(index_channel_x, index_channel_y, hilbert_data)
+t = timeit.default_timer() - starttime 
+print(f"Time for {repeats} parallel repeats is {t/repeats} :")
 
+starttime = timeit.default_timer()
+for _ in range(repeats):
+    pac = get_pac(index_channel_x, index_channel_y, hilbert_data)
+t = timeit.default_timer() - starttime 
+print(f"Time for {repeats} sequential repeats is {t/repeats} :")
+'''
