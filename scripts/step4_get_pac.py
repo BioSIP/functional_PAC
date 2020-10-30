@@ -74,7 +74,7 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
     For references, refer to:
     R. T. Canolty et al. High Gamma Power Is Phase-Locked to Theta Oscillations 
     in Human Neocortex. Science 15/09/2006. 1626-1628. 
-    
+
     Args:
         index_channel_x (int): Index of channel providing phase.
         index_channel_y (int): Index of channel providing amplitude.
@@ -121,55 +121,59 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
     # Generates the random amplitude block permutations of MVL
     numpoints = insta_phase_x.shape[1]
     skip = np.random.randint(fs, numpoints-fs, size=numsurrogate)
-    mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
-    for i, k in enumerate(skip): 
-        surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
-        mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
     
     if significance=='zscore':
         # Gets the Z-score matrix from the distribution of surrogate MVLs
+        mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
+        for i, k in enumerate(skip): 
+            surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
+            mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
         mvl_s = (mvl_raw - mvls.mean(axis=2))/mvls.std(axis=2)
     elif significance=='quantile':
         # And the quantile matrix from the distribution of surrogate MVLs
+        mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
+        for i, k in enumerate(skip):
+            surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
+            mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
         mvl_s = (mvl_raw[...,None]>mvls).sum(axis=2)/numsurrogate
     pac[:,:,:2] = np.stack((mvl_raw, mvl_s)).transpose((2,1,0))
 
     return (index_channel_x, index_channel_y),pac
 
 def get_pac(index_channel_x, index_channel_y, hilbert_data):
-        """Input: channel index: int, hilber_data: shape ->(channel, imfs, samples)"""
-        channel_x = hilbert_data[index_channel_x]
-        channel_y = hilbert_data[index_channel_y]
+    """Input: channel index: int, hilber_data: shape ->(channel, imfs, samples)"""
+    channel_x = hilbert_data[index_channel_x]
+    channel_y = hilbert_data[index_channel_y]
+    
+    fs = 500
+    #Store (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2) for every hilbert transform
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5)) 
+    
+    #Iteration over Hilbert Transforms in each channel
+    for ht_index_x, imf_ht_x in enumerate(channel_x):
         
-        fs = 500
-        #Store (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2) for every hilbert transform
-        pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5)) 
-        
-        #Iteration over Hilbert Transforms in each channel
-        for ht_index_x, imf_ht_x in enumerate(channel_x):
+        amplitude_envelope_x = np.abs(imf_ht_x)
+        instantaneous_phase_x = np.unwrap(np.angle(imf_ht_x))
+        instantaneous_frequency_x = (np.diff(instantaneous_phase_x) / (2.0*np.pi) * fs)
+
+        ce_x = centroide_espectral(instantaneous_frequency_x, amplitude_envelope_x)
+
+        for ht_index_y, imf_ht_y in enumerate(channel_y):            
             
-            amplitude_envelope_x = np.abs(imf_ht_x)
-            instantaneous_phase_x = np.unwrap(np.angle(imf_ht_x))
-            instantaneous_frequency_x = (np.diff(instantaneous_phase_x) / (2.0*np.pi) * fs)
-
-            ce_x = centroide_espectral(instantaneous_frequency_x, amplitude_envelope_x)
-
-            for ht_index_y, imf_ht_y in enumerate(channel_y):            
+            amplitude_envelope_y = np.abs(imf_ht_y)
+            instantaneous_phase_y = np.unwrap(np.angle(imf_ht_y))
+            instantaneous_frequency_y = (np.diff(instantaneous_phase_y) / (2.0*np.pi) * fs)
                 
-                amplitude_envelope_y = np.abs(imf_ht_y)
-                instantaneous_phase_y = np.unwrap(np.angle(imf_ht_y))
-                instantaneous_frequency_y = (np.diff(instantaneous_phase_y) / (2.0*np.pi) * fs)
-                    
-                ce_y = centroide_espectral(instantaneous_frequency_y, amplitude_envelope_y)
+            ce_y = centroide_espectral(instantaneous_frequency_y, amplitude_envelope_y)
+            
+            mvl = np.zeros(4)
+            
+            if ce_x < ce_y: #Low frequencies phase modulates the amplitude of high frequencies
+                mvl = MVL_Zscore(instantaneous_phase_x, amplitude_envelope_y)
                 
-                mvl = np.zeros(4)
-                
-                if ce_x < ce_y: #Low frequencies phase modulates the amplitude of high frequencies
-                    mvl = MVL_Zscore(instantaneous_phase_x, amplitude_envelope_y)
-                    
-                pac[ht_index_x, ht_index_y] = np.append(mvl,np.array([ce_x, ce_y]))
-                
-        return (index_channel_x, index_channel_y),pac
+            pac[ht_index_x, ht_index_y] = np.append(mvl,np.array([ce_x, ce_y]))
+            
+    return (index_channel_x, index_channel_y),pac
     
 if __name__ == "__main__":
     
