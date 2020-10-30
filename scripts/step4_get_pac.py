@@ -71,6 +71,10 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
     of surrogate matrices by applying block-permutation in the amplitude 
     envelopes, and the estimation of the Z-score and significance MVL matrices. 
 
+    For references, refer to:
+    R. T. Canolty et al. High Gamma Power Is Phase-Locked to Theta Oscillations 
+    in Human Neocortex. Science 15/09/2006. 1626-1628. 
+    
     Args:
         index_channel_x (int): Index of channel providing phase.
         index_channel_y (int): Index of channel providing amplitude.
