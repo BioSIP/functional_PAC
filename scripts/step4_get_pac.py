@@ -64,7 +64,7 @@ def MVL_Zscore(phase, amp):
     return np.array([m_raw, m_norm, m_perc])
 
 def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, 
-                numsurrogate=200):    
+                numsurrogate=200, significance='quantile'):    
     """
     Implements the routine for computing the PAC matrices in a vectorized
     way. It includes the computation of the primary MVL_raw matrix, the computation
@@ -77,17 +77,19 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
         hilbert_data (numpy.ndarray or list of numpy.ndarray): [description]
         fs (int, optional): Sampling frequency of the data. Defaults to 500.
         numsurrogate (int, optional): Number of surrogate functions used to
-                    estimate the Z-score matrix. Defaults to 200.
+                    estimate the significance matrix. Defaults to 200.
+        significance ({'quantile', 'zscore'}): Chooses the type of significance
+                    estimation of the coupling, via Z-score or quantile
 
     Returns:
         index (tuple): x, y coordinates, equals to index_channel_x, and y
         pac matrix (numpy.ndarray): 3D array containing: 
                                     [:,:,0] - MVL raw matrix 
-                                    [:,:,1] - Z-score from MVL matrix
-                                    [:,:,2] - Quantile matrix from MVL
-                                    [:,:,3] - Spectral Centroid for x
-                                    [:,:,4] - Spectral Centroid for y
+                                    [:,:,1] - Significance matrix from MVL
+                                    [:,:,2] - Spectral Centroid for x
+                                    [:,:,3] - Spectral Centroid for y
     """    
+    assert significance in {'quantile', 'zscore'}
     # First, we extract the data from channel x and y
     channel_x = hilbert_data[index_channel_x]
     channel_y = hilbert_data[index_channel_y]
@@ -105,8 +107,8 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
     # Compute of the spectral centroid 
     ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
                             ce_par(insta_freq_y, amplitude_envelope_y))
-    pac[:,:,3] = ce_x.T # as a convention, it stays at values 3 and 4
-    pac[:,:,4] = ce_y.T
+    pac[:,:,2] = ce_x.T # as a convention, it stays at values 3 and 4
+    pac[:,:,3] = ce_y.T
     
     # Compute the raw MVL matrix from phase(x) and amplitude(y)
     mvl_raw = MVL_par(insta_phase_x, amplitude_envelope_y)
@@ -119,11 +121,13 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
         surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
         mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
     
-    # Gets the Z-score matrix from the distribution of surrogate MVLs
-    mvl_z = (mvl_raw - mvls.mean(axis=2))/mvls.std(axis=2)
-    # And the quantile matrix from the distribution of surrogate MVLs
-    mvl_p = (mvl_raw[...,None]>mvls).sum(axis=2)/numsurrogate
-    pac[:,:,:3] = np.stack((mvl_raw, mvl_z, mvl_p)).transpose((2,1,0))
+    if significance=='zscore':
+        # Gets the Z-score matrix from the distribution of surrogate MVLs
+        mvl_s = (mvl_raw - mvls.mean(axis=2))/mvls.std(axis=2)
+    elif significance=='quantile':
+        # And the quantile matrix from the distribution of surrogate MVLs
+        mvl_s = (mvl_raw[...,None]>mvls).sum(axis=2)/numsurrogate
+    pac[:,:,:2] = np.stack((mvl_raw, mvl_s)).transpose((2,1,0))
 
     return (index_channel_x, index_channel_y),pac
 
