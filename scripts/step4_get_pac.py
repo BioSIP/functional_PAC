@@ -63,34 +63,54 @@ def MVL_Zscore(phase, amp):
 
     return np.array([m_raw, m_norm, mean_surrogate, std_surrogate])
 
-def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, numsurrogate=200):
-        channel_x = hilbert_data[index_channel_x]
-        channel_y = hilbert_data[index_channel_y]
-        pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 6)) 
+def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, numsurrogate=200):    
+    """
+    Implements the routine for computing the PAC matrices in a vectorized
+    way. It includes the computation of the primary MVL_raw matrix, the computation
+    of surrogate matrices by applying block-permutation in the amplitude 
+    envelopes, and the estimation of the Z-score and significance MVL matrices. 
 
-        amplitude_envelope_x = np.abs(channel_x)
-        amplitude_envelope_y = np.abs(channel_y)
-        insta_phase_x = np.unwrap(np.angle(channel_x))
-        insta_phase_y = np.unwrap(np.angle(channel_y))
-        insta_freq_x = np.diff(insta_phase_x, axis=1)*fs/(2*np.pi)
-        insta_freq_y = np.diff(insta_phase_y, axis=1)*fs/(2*np.pi)
-        ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
-                                ce_par(insta_freq_y, amplitude_envelope_y))
-        pac[:,:,4] = ce_x.T # por convención
-        pac[:,:,5] = ce_y.T
-        mvl_raw = MVL_par(insta_phase_x, amplitude_envelope_y)
+    Args:
+        index_channel_x (int): Index of channel providing phase.
+        index_channel_y (int): Index of channel providing amplitude.
+        hilbert_data (numpy.ndarray or list of numpy.ndarray): [description]
+        fs (int, optional): Sampling frequency of the data. Defaults to 500.
+        numsurrogate (int, optional): Number of surrogate functions used to
+                    estimate the Z-score matrix. Defaults to 200.
 
-        numpoints = insta_phase_x.shape[1]
-        skip = np.random.randint(fs, numpoints-fs, size=numsurrogate)
-        mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
-        for i, k in enumerate(skip): 
-            surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
-            mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
-        mvl_u = mvls.mean(axis=2)
-        mvl_s = mvls.std(axis=2)
-        mvl_z = (mvl_raw - mvl_u)/mvl_s
-        pac[:,:,:4] = np.stack((mvl_raw, mvl_z, mvl_u, mvl_s)).transpose((2,1,0))
-        return (index_channel_x, index_channel_y),pac
+    Returns:
+        [type]: [description]
+    """    
+    # First, we extract the data from channel x and y
+    channel_x = hilbert_data[index_channel_x]
+    channel_y = hilbert_data[index_channel_y]
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 6)) 
+
+    amplitude_envelope_x = np.abs(channel_x)
+    amplitude_envelope_y = np.abs(channel_y)
+    insta_phase_x = np.unwrap(np.angle(channel_x))
+    insta_phase_y = np.unwrap(np.angle(channel_y))
+    insta_freq_x = np.diff(insta_phase_x, axis=1)*fs/(2*np.pi)
+    insta_freq_y = np.diff(insta_phase_y, axis=1)*fs/(2*np.pi)
+
+    # Computation of the spectral centroid 
+    ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
+                            ce_par(insta_freq_y, amplitude_envelope_y))
+    pac[:,:,4] = ce_x.T # por convención
+    pac[:,:,5] = ce_y.T
+    mvl_raw = MVL_par(insta_phase_x, amplitude_envelope_y)
+
+    numpoints = insta_phase_x.shape[1]
+    skip = np.random.randint(fs, numpoints-fs, size=numsurrogate)
+    mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
+    for i, k in enumerate(skip): 
+        surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
+        mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
+    mvl_u = mvls.mean(axis=2)
+    mvl_s = mvls.std(axis=2)
+    mvl_z = (mvl_raw - mvl_u)/mvl_s
+    pac[:,:,:4] = np.stack((mvl_raw, mvl_z, mvl_u, mvl_s)).transpose((2,1,0))
+    return (index_channel_x, index_channel_y),pac
 
 def get_pac(index_channel_x, index_channel_y, hilbert_data):
         """Input: channel index: int, hilber_data: shape ->(channel, imfs, samples)"""
