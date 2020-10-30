@@ -79,7 +79,8 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
         numsurrogate (int, optional): Number of surrogate functions used to
                     estimate the significance matrix. Defaults to 200.
         significance ({'quantile', 'zscore'}): Chooses the type of significance
-                    estimation of the coupling, via Z-score or quantile
+                    estimation of the coupling, via Z-score or quantile. 
+                    Defaults to 'quantile'.
 
     Returns:
         index (tuple): x, y coordinates, equals to index_channel_x, and y
