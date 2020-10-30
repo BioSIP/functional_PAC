@@ -129,8 +129,10 @@ def get_pac(index_channel_x, index_channel_y, hilbert_data):
     
 if __name__ == "__main__":
     
-    hilbert_transform_path = "../data/hilbert"
-    save_path = "../data/descriptors"
+    # hilbert_transform_path = "../data/hilbert"
+    # save_path = "../data/descriptors"
+    hilbert_transform_path = "/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/hilbert"
+    save_path = "/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors"
     hilbert_files = [file for file in os.listdir(hilbert_transform_path) if file.endswith('.npy')]
     
     bar = tqdm(hilbert_files)
