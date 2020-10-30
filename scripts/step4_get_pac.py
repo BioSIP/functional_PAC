@@ -56,41 +56,76 @@ def MVL_Zscore(phase, amp):
         surrogate_m.append(MVL(phase, surrogate_amplitude))        
     
 #     if shapiro(surrogate_m)[0] < .9: print("Not normal") #Check if surrogates distribution is normal
-        
+
     mean_surrogate =  np.mean(surrogate_m)
     std_surrogate = np.std(surrogate_m)
     m_norm = (m_raw - mean_surrogate) / std_surrogate
+    m_perc = (m_raw[...,None]>surrogate_m).sum(axis=-1)/numsurrogate
+    return np.array([m_raw, m_norm, m_perc])
 
-    return np.array([m_raw, m_norm, mean_surrogate, std_surrogate])
+def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, 
+                numsurrogate=200):    
+    """
+    Implements the routine for computing the PAC matrices in a vectorized
+    way. It includes the computation of the primary MVL_raw matrix, the computation
+    of surrogate matrices by applying block-permutation in the amplitude 
+    envelopes, and the estimation of the Z-score and significance MVL matrices. 
 
-def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, numsurrogate=200):
-        channel_x = hilbert_data[index_channel_x]
-        channel_y = hilbert_data[index_channel_y]
-        pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 6)) 
+    Args:
+        index_channel_x (int): Index of channel providing phase.
+        index_channel_y (int): Index of channel providing amplitude.
+        hilbert_data (numpy.ndarray or list of numpy.ndarray): [description]
+        fs (int, optional): Sampling frequency of the data. Defaults to 500.
+        numsurrogate (int, optional): Number of surrogate functions used to
+                    estimate the Z-score matrix. Defaults to 200.
 
-        amplitude_envelope_x = np.abs(channel_x)
-        amplitude_envelope_y = np.abs(channel_y)
-        insta_phase_x = np.unwrap(np.angle(channel_x))
-        insta_phase_y = np.unwrap(np.angle(channel_y))
-        insta_freq_x = np.diff(insta_phase_x, axis=1)*fs/(2*np.pi)
-        insta_freq_y = np.diff(insta_phase_y, axis=1)*fs/(2*np.pi)
-        ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
-                                ce_par(insta_freq_y, amplitude_envelope_y))
-        pac[:,:,4] = ce_x.T # por convención
-        pac[:,:,5] = ce_y.T
-        mvl_raw = MVL_par(insta_phase_x, amplitude_envelope_y)
+    Returns:
+        index (tuple): x, y coordinates, equals to index_channel_x, and y
+        pac matrix (numpy.ndarray): 3D array containing: 
+                                    [:,:,0] - MVL raw matrix 
+                                    [:,:,1] - Z-score from MVL matrix
+                                    [:,:,2] - Quantile matrix from MVL
+                                    [:,:,3] - Spectral Centroid for x
+                                    [:,:,4] - Spectral Centroid for y
+    """    
+    # First, we extract the data from channel x and y
+    channel_x = hilbert_data[index_channel_x]
+    channel_y = hilbert_data[index_channel_y]
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5)) 
 
-        numpoints = insta_phase_x.shape[1]
-        skip = np.random.randint(fs, numpoints-fs, size=numsurrogate)
-        mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
-        for i, k in enumerate(skip): 
-            surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
-            mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
-        mvl_u = mvls.mean(axis=2)
-        mvl_s = mvls.std(axis=2)
-        mvl_z = (mvl_raw - mvl_u)/mvl_s
-        pac[:,:,:4] = np.stack((mvl_raw, mvl_z, mvl_u, mvl_s)).transpose((2,1,0))
-        return (index_channel_x, index_channel_y),pac
+    # Extracts the amplitude, phase and instantaneous frequency 
+    # from the Hilbert signal of channels x and y
+    amplitude_envelope_x = np.abs(channel_x)
+    amplitude_envelope_y = np.abs(channel_y)
+    insta_phase_x = np.unwrap(np.angle(channel_x))
+    insta_phase_y = np.unwrap(np.angle(channel_y))
+    insta_freq_x = np.diff(insta_phase_x, axis=1)*fs/(2*np.pi)
+    insta_freq_y = np.diff(insta_phase_y, axis=1)*fs/(2*np.pi)
+
+    # Compute of the spectral centroid 
+    ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
+                            ce_par(insta_freq_y, amplitude_envelope_y))
+    pac[:,:,3] = ce_x.T # as a convention, it stays at values 3 and 4
+    pac[:,:,4] = ce_y.T
+    
+    # Compute the raw MVL matrix from phase(x) and amplitude(y)
+    mvl_raw = MVL_par(insta_phase_x, amplitude_envelope_y)
+
+    # Generates the random amplitude block permutations of MVL
+    numpoints = insta_phase_x.shape[1]
+    skip = np.random.randint(fs, numpoints-fs, size=numsurrogate)
+    mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
+    for i, k in enumerate(skip): 
+        surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
+        mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
+    
+    # Gets the Z-score matrix from the distribution of surrogate MVLs
+    mvl_z = (mvl_raw - mvls.mean(axis=2))/mvls.std(axis=2)
+    # And the quantile matrix from the distribution of surrogate MVLs
+    mvl_p = (mvl_raw[...,None]>mvls).sum(axis=2)/numsurrogate
+    pac[:,:,:3] = np.stack((mvl_raw, mvl_z, mvl_p)).transpose((2,1,0))
+
+    return (index_channel_x, index_channel_y),pac
 
 def get_pac(index_channel_x, index_channel_y, hilbert_data):
         """Input: channel index: int, hilber_data: shape ->(channel, imfs, samples)"""
@@ -99,7 +134,7 @@ def get_pac(index_channel_x, index_channel_y, hilbert_data):
         
         fs = 500
         #Store (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2) for every hilbert transform
-        pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 6)) 
+        pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5)) 
         
         #Iteration over Hilbert Transforms in each channel
         for ht_index_x, imf_ht_x in enumerate(channel_x):
