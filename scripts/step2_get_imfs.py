@@ -24,8 +24,16 @@ from joblib import Parallel, delayed
 
 
 def preprocessing(data, ref_channel=31, fs=500 ):
-    """input: data with shape (subjects, channels, samples)"""    
-    """output: data with shape (subjects, channels-1, samples)"""
+    """Signal preprocessing
+
+    Args:
+        data (numpy.ndarray): data with shape (subjects, channels, samples)
+        ref_channel (int, optional): Channel to be used as reference. Defaults to 31.
+        fs (int, optional): Sampling frequency. Defaults to 500.
+
+    Returns:
+        [type]: data with shape (subjects, channels-1, samples)
+    """    
     batch_data = data.copy()
     # Low filter
     sos_lp = signal.butter(10, 90, 'lowpass', fs=fs, output='sos')
