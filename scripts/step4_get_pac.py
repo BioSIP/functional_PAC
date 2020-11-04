@@ -11,8 +11,17 @@ import pickle
 """This script saves a dictionary with the MVL values in the form
 key: tuple: (channel_x, channel_y)
 values: matrix -> shape ((#hilbert_transforms of channel x, #hilbert_transforms of channel y, 6) -> last shape item is (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2)
+
+Bandas: 
+
 """
 
+global bands 
+bands = {'Delta': (0.5, 4),
+             'Theta': (4, 8),
+             'Alpha': (8, 12),
+             'Beta': (12, 25),
+             'Gamma': (25, 140)}
 
 def centroide_espectral(frec, amp):
     num = frec * amp[:-1]
@@ -67,16 +76,15 @@ def MVL_Zscore(phase, amp):
     m_perc = (m_raw[..., None] > surrogate_m).sum(axis=-1) / numsurrogate
     return np.array([m_raw, m_norm, m_perc])
 
-
-def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
-                numsurrogate=200, significance='quantile'):
+def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, 
+                numsurrogate=200, significance='quantile', pair='band'):    
     """
     Implements the routine for computing the PAC matrices in a vectorized
     way. It includes the computation of the primary MVL_raw matrix, the computation
     of surrogate matrices by applying block-permutation in the amplitude 
     envelopes, and the estimation of the Z-score and significance MVL matrices. 
 
-    For references, refer to:
+    Refer to:
     R. T. Canolty et al. High Gamma Power Is Phase-Locked to Theta Oscillations 
     in Human Neocortex. Science 15/09/2006. 1626-1628. 
 
@@ -90,6 +98,9 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
         significance ({'quantile', 'zscore'}): Chooses the type of significance
                     estimation of the coupling, via Z-score or quantile. 
                     Defaults to 'quantile'.
+        pair ({'imf', 'band'}): Specifies whether the PAC connectivity is
+                    estimated between bands or between IMFS.
+                    Defaults to 'band'. 
 
     Returns:
         index (tuple): x, y coordinates, equals to index_channel_x, and y
@@ -100,10 +111,11 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
                                     [:,:,3] - Spectral Centroid for y
     """
     assert significance in {'quantile', 'zscore'}
+    assert pair in {'imf', 'band'}
     # First, we extract the data from channel x and y
     channel_x = hilbert_data[index_channel_x]
     channel_y = hilbert_data[index_channel_y]
-    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5))
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 4)) 
 
     # Extracts the amplitude, phase and instantaneous frequency 
     # from the Hilbert signal of channels x and y
