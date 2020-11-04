@@ -11,8 +11,17 @@ import pickle
 """This script saves a dictionary with the MVL values in the form
 key: tuple: (channel_x, channel_y)
 values: matrix -> shape ((#hilbert_transforms of channel x, #hilbert_transforms of channel y, 6) -> last shape item is (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2)
+
+Bandas: 
+
 """
 
+global bands 
+bands = {'Delta': (0.5, 4),
+             'Theta': (4, 8),
+             'Alpha': (8, 12),
+             'Beta': (12, 25),
+             'Gamma': (25, 140)}
 
 def centroide_espectral(frec, amp):
     num = frec * amp[:-1]
