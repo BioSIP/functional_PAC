@@ -111,7 +111,7 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
     # First, we extract the data from channel x and y
     channel_x = hilbert_data[index_channel_x]
     channel_y = hilbert_data[index_channel_y]
-    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5)) 
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 4)) 
 
     # Extracts the amplitude, phase and instantaneous frequency 
     # from the Hilbert signal of channels x and y
