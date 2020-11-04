@@ -90,7 +90,7 @@ if __name__ == "__main__":
     files = os.listdir(path)
 
     for filename in tqdm(files):
-        name = filename[:-4]
+        name = filename[4:-4]
         filepath = os.path.join(path, filename)
         data = np.load(filepath)
         data = preprocessing(data)
