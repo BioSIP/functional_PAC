@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-#TODO argparser to obtain root path and save_path
-#TODO parallel computation
-#This script takes the original data and transform it to numpy array binary files
-#subida/bajada are processed as if they were different subjects
+# TODO argparser to obtain root path and save_path
+# TODO parallel computation
+# This script takes the original data and transform it to numpy array binary files
+# subida/bajada are processed as if they were different subjects
 
 
 """ EEG files format: XXX_{C|RD}Y_Z{s|b} where 
@@ -29,10 +29,10 @@ for target in ['C', 'RD']:
         bar = tqdm(files)
         for index, f in enumerate(bar):
             bar.set_description("Processing {}".format(f))
-            data = pd.read_csv(os.path.join(path,f), delimiter=' |;', header=None, decimal=",")
+            data = pd.read_csv(os.path.join(path, f), delimiter=' |;', header=None, decimal=",")
             data = data.values
-            if data.shape[1] > 75100: data = data[:,:75100] #Certain files have s/b together
+            if data.shape[1] > 75100: data = data[:, :75100]  # Certain files have s/b together
             datamatrix[index] = data
         save_file_name = "EEG_7_{}_{}".format(hz, target)
         print("Saving file: {}".format(save_file_name))
-        np.save(save_path + save_file_name , datamatrix)
+        np.save(save_path + save_file_name, datamatrix)

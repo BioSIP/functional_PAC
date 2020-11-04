@@ -21,16 +21,20 @@ def centroide_espectral(frec, amp):
     centroide = num / den
     return centroide
 
-def ce_par(freq,amp):
-    num = freq*amp[:,:-1]
-    centroids = num.sum(axis=1)/amp.sum(axis=1)
+
+def ce_par(freq, amp):
+    num = freq * amp[:, :-1]
+    centroids = num.sum(axis=1) / amp.sum(axis=1)
     return centroids
+
 
 def MVL(phase, amp):
     return np.abs(np.mean(amp * np.exp(1j * phase)))
 
+
 def MVL_par(phase, amp):
-    return np.abs(np.inner(amp, np.exp(1j*phase))/amp.shape[1])
+    return np.abs(np.inner(amp, np.exp(1j * phase)) / amp.shape[1])
+
 
 # Canolty RT (2006) High Gamma Power Is Phase-Locked to Theta. science
 def MVL_Zscore(phase, amp):
@@ -47,24 +51,25 @@ def MVL_Zscore(phase, amp):
     skip = skip[0:numsurrogate]
     skip = np.array(skip, dtype='int')
     surrogate_m = np.zeros(numsurrogate)
-    
+
     m_raw = MVL(phase, amp)
 
     surrogate_m = []
     for k in skip:
         surrogate_amplitude = np.concatenate((amp[k:], amp[:k]))
-        surrogate_m.append(MVL(phase, surrogate_amplitude))        
-    
-#     if shapiro(surrogate_m)[0] < .9: print("Not normal") #Check if surrogates distribution is normal
+        surrogate_m.append(MVL(phase, surrogate_amplitude))
 
-    mean_surrogate =  np.mean(surrogate_m)
+    #     if shapiro(surrogate_m)[0] < .9: print("Not normal") #Check if surrogates distribution is normal
+
+    mean_surrogate = np.mean(surrogate_m)
     std_surrogate = np.std(surrogate_m)
     m_norm = (m_raw - mean_surrogate) / std_surrogate
-    m_perc = (m_raw[...,None]>surrogate_m).sum(axis=-1)/numsurrogate
+    m_perc = (m_raw[..., None] > surrogate_m).sum(axis=-1) / numsurrogate
     return np.array([m_raw, m_norm, m_perc])
 
-def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, 
-                numsurrogate=200, significance='quantile'):    
+
+def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
+                numsurrogate=200, significance='quantile'):
     """
     Implements the routine for computing the PAC matrices in a vectorized
     way. It includes the computation of the primary MVL_raw matrix, the computation
@@ -93,12 +98,12 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
                                     [:,:,1] - Significance matrix from MVL
                                     [:,:,2] - Spectral Centroid for x
                                     [:,:,3] - Spectral Centroid for y
-    """    
+    """
     assert significance in {'quantile', 'zscore'}
     # First, we extract the data from channel x and y
     channel_x = hilbert_data[index_channel_x]
     channel_y = hilbert_data[index_channel_y]
-    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5)) 
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5))
 
     # Extracts the amplitude, phase and instantaneous frequency 
     # from the Hilbert signal of channels x and y
@@ -106,95 +111,98 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
     amplitude_envelope_y = np.abs(channel_y)
     insta_phase_x = np.unwrap(np.angle(channel_x))
     insta_phase_y = np.unwrap(np.angle(channel_y))
-    insta_freq_x = np.diff(insta_phase_x, axis=1)*fs/(2*np.pi)
-    insta_freq_y = np.diff(insta_phase_y, axis=1)*fs/(2*np.pi)
+    insta_freq_x = np.diff(insta_phase_x, axis=1) * fs / (2 * np.pi)
+    insta_freq_y = np.diff(insta_phase_y, axis=1) * fs / (2 * np.pi)
 
     # Compute of the spectral centroid 
     ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
-                            ce_par(insta_freq_y, amplitude_envelope_y))
-    pac[:,:,2] = ce_x.T # as a convention, it stays at values 3 and 4
-    pac[:,:,3] = ce_y.T
-    
+                             ce_par(insta_freq_y, amplitude_envelope_y))
+    pac[:, :, 2] = ce_x.T  # as a convention, it stays at values 3 and 4
+    pac[:, :, 3] = ce_y.T
+
     # Compute the raw MVL matrix from phase(x) and amplitude(y)
     mvl_raw = MVL_par(insta_phase_x, amplitude_envelope_y)
 
     # Generates the random amplitude block permutations of MVL
     numpoints = insta_phase_x.shape[1]
-    skip = np.random.randint(fs, numpoints-fs, size=numsurrogate)
-    
-    if significance=='zscore':
+    skip = np.random.randint(fs, numpoints - fs, size=numsurrogate)
+
+    if significance == 'zscore':
         # Gets the Z-score matrix from the distribution of surrogate MVLs
-        mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
-        for i, k in enumerate(skip): 
-            surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
-            mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
-        mvl_s = (mvl_raw - mvls.mean(axis=2))/mvls.std(axis=2)
-    elif significance=='quantile':
-        # And the quantile matrix from the distribution of surrogate MVLs
-        mvls = np.zeros(mvl_raw.shape+(numsurrogate,))
+        mvls = np.zeros(mvl_raw.shape + (numsurrogate,))
         for i, k in enumerate(skip):
             surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
-            mvls[...,i] = MVL_par(insta_phase_x, surrogate_amplitude)
-        mvl_s = (mvl_raw[...,None]>mvls).sum(axis=2)/numsurrogate
-    pac[:,:,:2] = np.stack((mvl_raw, mvl_s)).transpose((2,1,0))
+            mvls[..., i] = MVL_par(insta_phase_x, surrogate_amplitude)
+        mvl_s = (mvl_raw - mvls.mean(axis=2)) / mvls.std(axis=2)
+    elif significance == 'quantile':
+        # And the quantile matrix from the distribution of surrogate MVLs
+        mvls = np.zeros(mvl_raw.shape + (numsurrogate,))
+        for i, k in enumerate(skip):
+            surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
+            mvls[..., i] = MVL_par(insta_phase_x, surrogate_amplitude)
+        mvl_s = (mvl_raw[..., None] > mvls).sum(axis=2) / numsurrogate
+    pac[:, :, :2] = np.stack((mvl_raw, mvl_s)).transpose((2, 1, 0))
 
-    return (index_channel_x, index_channel_y),pac
+    return (index_channel_x, index_channel_y), pac
+
 
 def get_pac(index_channel_x, index_channel_y, hilbert_data):
     """Input: channel index: int, hilber_data: shape ->(channel, imfs, samples)"""
     channel_x = hilbert_data[index_channel_x]
     channel_y = hilbert_data[index_channel_y]
-    
+
     fs = 500
-    #Store (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2) for every hilbert transform
-    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5)) 
-    
-    #Iteration over Hilbert Transforms in each channel
+    # Store (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2) for every hilbert transform
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5))
+
+    # Iteration over Hilbert Transforms in each channel
     for ht_index_x, imf_ht_x in enumerate(channel_x):
-        
+
         amplitude_envelope_x = np.abs(imf_ht_x)
         instantaneous_phase_x = np.unwrap(np.angle(imf_ht_x))
-        instantaneous_frequency_x = (np.diff(instantaneous_phase_x) / (2.0*np.pi) * fs)
+        instantaneous_frequency_x = (np.diff(instantaneous_phase_x) / (2.0 * np.pi) * fs)
 
         ce_x = centroide_espectral(instantaneous_frequency_x, amplitude_envelope_x)
 
-        for ht_index_y, imf_ht_y in enumerate(channel_y):            
-            
+        for ht_index_y, imf_ht_y in enumerate(channel_y):
+
             amplitude_envelope_y = np.abs(imf_ht_y)
             instantaneous_phase_y = np.unwrap(np.angle(imf_ht_y))
-            instantaneous_frequency_y = (np.diff(instantaneous_phase_y) / (2.0*np.pi) * fs)
-                
+            instantaneous_frequency_y = (np.diff(instantaneous_phase_y) / (2.0 * np.pi) * fs)
+
             ce_y = centroide_espectral(instantaneous_frequency_y, amplitude_envelope_y)
-            
+
             mvl = np.zeros(4)
-            
-            if ce_x < ce_y: #Low frequencies phase modulates the amplitude of high frequencies
+
+            if ce_x < ce_y:  # Low frequencies phase modulates the amplitude of high frequencies
                 mvl = MVL_Zscore(instantaneous_phase_x, amplitude_envelope_y)
-                
-            pac[ht_index_x, ht_index_y] = np.append(mvl,np.array([ce_x, ce_y]))
-            
-    return (index_channel_x, index_channel_y),pac
-    
+
+            pac[ht_index_x, ht_index_y] = np.append(mvl, np.array([ce_x, ce_y]))
+
+    return (index_channel_x, index_channel_y), pac
+
+
 if __name__ == "__main__":
-    
+
     hilbert_transform_path = "../data/hilbert"
-    save_path = "../data/descriptors"
+    save_path = "../data/descriptors_quantile"
     hilbert_files = [file for file in os.listdir(hilbert_transform_path) if file.endswith('.npy')]
-    
+
     bar = tqdm(hilbert_files)
     for filename in bar:
         bar.set_description("Filename: {}".format(filename))
-        if os.path.isfile(os.path.join(save_path, filename)): #Check if file already exists to avoid the processing
+        if os.path.isfile(os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
             continue
-        hilbert_t = np.load(os.path.join(hilbert_transform_path,filename), allow_pickle=True)
-        channels_combinations = combinations_with_replacement(range(hilbert_t.shape[0]), r = 2)
-        
-        PACs = {} #Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
+        hilbert_t = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
+        channels_combinations = combinations_with_replacement(range(hilbert_t.shape[0]), r=2)
 
-        parallel_pacs = Parallel(n_jobs=10)(delayed(get_pac_par)(x, y, hilbert_t) for x,y in list(channels_combinations))
+        PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
+
+        parallel_pacs = Parallel(n_jobs=8)(
+            delayed(get_pac_par)(x, y, hilbert_t) for x, y in list(channels_combinations))
 
         for key, pac in parallel_pacs:
-            PACs[key] = pac                   
+            PACs[key] = pac
 
         with open(os.path.join(save_path, "{}.pickle".format(filename[:-4])), 'wb') as handle:
             pickle.dump(PACs, handle, protocol=pickle.HIGHEST_PROTOCOL)
