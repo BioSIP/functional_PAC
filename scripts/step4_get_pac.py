@@ -73,14 +73,14 @@ def MVL_Zscore(phase, amp):
     return np.array([m_raw, m_norm, m_perc])
 
 def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, 
-                numsurrogate=200, significance='quantile'):    
+                numsurrogate=200, significance='quantile', pair='band'):    
     """
     Implements the routine for computing the PAC matrices in a vectorized
     way. It includes the computation of the primary MVL_raw matrix, the computation
     of surrogate matrices by applying block-permutation in the amplitude 
     envelopes, and the estimation of the Z-score and significance MVL matrices. 
 
-    For references, refer to:
+    Refer to:
     R. T. Canolty et al. High Gamma Power Is Phase-Locked to Theta Oscillations 
     in Human Neocortex. Science 15/09/2006. 1626-1628. 
 
@@ -94,6 +94,9 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
         significance ({'quantile', 'zscore'}): Chooses the type of significance
                     estimation of the coupling, via Z-score or quantile. 
                     Defaults to 'quantile'.
+        pair ({'imf', 'band'}): Specifies whether the PAC connectivity is
+                    estimated between bands or between IMFS.
+                    Defaults to 'band'. 
 
     Returns:
         index (tuple): x, y coordinates, equals to index_channel_x, and y
@@ -104,6 +107,7 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
                                     [:,:,3] - Spectral Centroid for y
     """    
     assert significance in {'quantile', 'zscore'}
+    assert pair in {'imf', 'band'}
     # First, we extract the data from channel x and y
     channel_x = hilbert_data[index_channel_x]
     channel_y = hilbert_data[index_channel_y]
