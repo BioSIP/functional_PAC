@@ -50,17 +50,53 @@ class HilbertHuang(object):
     
     def __init__(self, n_imf=10):
         self.emd = EMD()
+        self.imfs = None
+        self.normed = False # To be True when normalize_imfs has been applied
         if isinstance(n_imf, int):
             self.n_imf = n_imf
         else:
             self.n_imf = -1
         
         pass
+    
+    def normalize_IMF(self, thr=0.05, max_iter=20, current_iter=0):
+        """Recursive implementation of IMF normalization procedure. 
+        TODO: comprobar que es más rapido que iterativo. 
+
+        Args:
+            thr (float, optional): [description]. Defaults to 0.05.
+            max_iter (int, optional): [description]. Defaults to 20.
+            current_iter (int, optional): [description]. Defaults to 0.
+
+        Returns:
+            [type]: [description]
+        """
+        envelope = np.abs(signal.hilbert(self.imfs))
+        normed_imf = np.divide(self.imfs, envelope)
+        peaks = signal.find_peaks(envelope)[0]
+
+        if np.std(peaks) >= thr and current_iter <= max_iter:
+            normed_imf = self.normalize_IMF(normed_imf, current_iter=current_iter + 1)
+        else:
+            normed_imf = self.imfs
+
+        self.normed = True
+        return normed_imf
+
+    def apply_hsa(self):
+        """Applies Hilbert Spectral Analysis (HSA) to current IMFs
+
+        Returns:
+            [type]: [description]
+        """
+        assert self.normed
+        return signal.hilbert(self.imfs)
 
     def funcname(self, parameter_list):
         pass
 
     def fit(self, x):
+        # estimate imfs. normalize imfs. apply hsa. 
         pass
 
     def predict(self, x):
