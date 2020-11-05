@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 from PyEMD import EMD
+from scipy import signal
 
 """
 Vamos a hacerlo de forma que, dados:
@@ -47,7 +48,13 @@ class HilbertHuang(object):
     """
     pass
     
-    def __init__(self, n_imfs=None):
+    def __init__(self, n_imf=10):
+        self.emd = EMD()
+        if isinstance(n_imf, int):
+            self.n_imf = n_imf
+        else:
+            self.n_imf = -1
+        
         pass
 
     def funcname(self, parameter_list):
@@ -78,6 +85,15 @@ class FunctionalPAC(object):
     """
     pass
     
+    def __init__(self, numsurrogate=200, significance='quantile', pair='band'):  
+
+        assert significance in {'quantile', 'zscore'}
+        self.significance = significance
+        assert pair in {'imf', 'band'}
+        self.pair = pair
+        assert isinstance(numsurrogate, int)
+        self.numsurrogate = numsurrogate
+        pass
 
     def funcname(self, parameter_list):
         """
