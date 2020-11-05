@@ -32,6 +32,15 @@ def centroide_espectral(frec, amp):
 
 
 def ce_par(freq, amp):
+    """Computes the spectral centroid of a given frequency and amplitude
+
+    Args:
+        freq (numpy.ndarray): [description]
+        amp (numpy.ndarray): [description]
+
+    Returns:
+        [type]: [description]
+    """
     num = freq * amp[:, :-1]
     centroids = num.sum(axis=1) / amp.sum(axis=1)
     return centroids
@@ -42,6 +51,15 @@ def MVL(phase, amp):
 
 
 def MVL_par(phase, amp):
+    """Returns the value for Mean Vector Length 
+
+    Args:
+        phase (numpy.ndarray): [description]
+        amp (numpy.ndarray): [description]
+
+    Returns:
+        numpy.ndarray: [description]
+    """
     return np.abs(np.inner(amp, np.exp(1j * phase)) / amp.shape[1])
 
 
