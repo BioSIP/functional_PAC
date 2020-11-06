@@ -226,13 +226,22 @@ if __name__ == "__main__":
         hilbert_t = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
         channels_combinations = combinations_with_replacement(range(hilbert_t.shape[0]), r=2)
 
-        PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
+        # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 
         parallel_pacs = Parallel(n_jobs=8)(
             delayed(get_pac_par)(x, y, hilbert_t) for x, y in list(channels_combinations))
 
+        # for key, pac in parallel_pacs:
+        #     PACs[key] = pac
+
+        Nchan, Nimfs = hilbert_t.shape[:2]
+        Nbands = len(bands)
+        PACs = np.zeros((Nchan, Nchan, Nimfs, Nimfs, 4))
+        PACband = np.zeros((Nchan, Nchan, Nbands,Nbands, 2))
         for key, pac in parallel_pacs:
-            PACs[key] = pac
+            PACs[key[0], key[1]] = pac
+
+
 
         with open(os.path.join(save_path, "{}.pickle".format(filename[:-4])), 'wb') as handle:
             pickle.dump(PACs, handle, protocol=pickle.HIGHEST_PROTOCOL)
