@@ -4,7 +4,7 @@ from scipy import signal
 import os
 from tqdm import tqdm
 from joblib import Parallel, delayed
-from itertools import combinations_with_replacement
+from itertools import permutations
 from scipy.stats import shapiro
 import pickle
 
@@ -32,6 +32,15 @@ def centroide_espectral(frec, amp):
 
 
 def ce_par(freq, amp):
+    """Computes the spectral centroid of a given frequency and amplitude
+
+    Args:
+        freq (numpy.ndarray): [description]
+        amp (numpy.ndarray): [description]
+
+    Returns:
+        [type]: [description]
+    """
     num = freq * amp[:, :-1]
     centroids = num.sum(axis=1) / amp.sum(axis=1)
     return centroids
@@ -42,6 +51,15 @@ def MVL(phase, amp):
 
 
 def MVL_par(phase, amp):
+    """Returns the value for Mean Vector Length 
+
+    Args:
+        phase (numpy.ndarray): [description]
+        amp (numpy.ndarray): [description]
+
+    Returns:
+        numpy.ndarray: [description]
+    """
     return np.abs(np.inner(amp, np.exp(1j * phase)) / amp.shape[1])
 
 
@@ -206,18 +224,32 @@ if __name__ == "__main__":
         if os.path.isfile(os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
             continue
         hilbert_t = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
-        channels_combinations = combinations_with_replacement(range(hilbert_t.shape[0]), r=2)
+        channels_combinations = permutations(range(hilbert_t.shape[0], 2)
 
-        PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
+        # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 
         parallel_pacs = Parallel(n_jobs=8)(
             delayed(get_pac_par)(x, y, hilbert_t) for x, y in list(channels_combinations))
 
+        # for key, pac in parallel_pacs:
+        #     PACs[key] = pac
+
+        Nchan, Nimfs = hilbert_t.shape[:2]
+        Nbands = len(bands)
+        PACs = np.zeros((Nchan, Nchan, Nimfs, Nimfs, 4))
+        PACband = np.zeros((Nchan, Nchan, Nbands,Nbands, 2))
         for key, pac in parallel_pacs:
-            PACs[key] = pac
+            PACs[key[0], key[1]] = pac
+            for bx, bandx in enumerate(bands.keys()):
+                selx = (bands[bandx][0]<= pac[:,:,2]) & (pac[:,:,2] < bands[bandx][1])
+                for by, bandy in enumerate(bands.keys()):
+                    sely = (bands[bandy][0]<= pac[:,:,3]) & (pac[:,:,3] < bands[bandy][1])
+                    sel = np.where(selx & sely)
+                    PACband[key[0], key[1],bx,by] = pac[sel[0],sel[1]].mean(axis=0)[:2]
 
         with open(os.path.join(save_path, "{}.pickle".format(filename[:-4])), 'wb') as handle:
             pickle.dump(PACs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        np.save(os.path.join(save_path, f"{filename[:4]}_band.npy"), PACband)
 
 '''
 # Código para cuantificar mejoras en PAC. 
@@ -234,3 +266,23 @@ for _ in range(repeats):
 t = timeit.default_timer() - starttime 
 print(f"Time for {repeats} sequential repeats is {t/repeats} :")
 '''
+
+
+def plot_band_connectivity(PACband, bands):
+    ch_names_g = ['Fp1','Fp2','F7','F3','Fz','F4','F8','FC5','FC1','FC2','FC6','T7',
+                'C3','C4','T8','TP9','CP5','CP1','CP2','CP6','TP10','P7','P3','PZ',
+                'P4','P8','PO9','O1','OZ','O2','PO10']
+    nx, ny = PACband.shape[2:4]
+    fig, ax = plt.subplots(nx, ny, figsize=(30,25))
+    for bx in range(nx):
+        for by in range(ny):
+            im = ax[bx][by].imshow(PACband[:,:,bx,by,1], vmin=0, vmax=1)
+            ax[bx][by].set_xticks(np.arange(31))
+            ax[bx][by].set_xticklabels(ch_names_g, rotation=90)
+            ax[bx][by].set_yticks(np.arange(31))
+            ax[bx][by].set_yticklabels(ch_names_g)
+            if bx==4:
+                ax[bx][by].set_xlabel(f'Band {list(bands.keys())[by]}')
+            if by==0:
+                ax[bx][by].set_ylabel(f'Band {list(bands.keys())[bx]}')
+    fig.colorbar(im, ax=ax[:, :], shrink=0.6)
