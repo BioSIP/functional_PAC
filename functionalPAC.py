@@ -58,7 +58,10 @@ class HilbertHuang(object):
             self.n_imf = -1
         
         pass
-    
+
+    def signal_preprocessing(self, signal):
+        pass
+
     def normalize_IMF(self, thr=0.05, max_iter=20, current_iter=0):
         """Recursive implementation of IMF normalization procedure. 
         TODO: comprobar que es más rapido que iterativo. 
@@ -96,7 +99,9 @@ class HilbertHuang(object):
         pass
 
     def fit(self, x):
-        # estimate imfs. normalize imfs. apply hsa. 
+        # estimate imfs. normalize imfs. apply hsa. k
+        # estimate IMFs:
+        
         pass
 
     def predict(self, x):
