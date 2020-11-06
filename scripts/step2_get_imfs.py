@@ -118,7 +118,7 @@ if __name__ == "__main__":
         # IMFs = EMD_decomposition(data, name)
 
         # MEMD
-        bar.set_description(name + "MEMD")
+        bar.set_description(name + " MEMD")
         IMFs = MEMD_all_subjects(data)
         np.save(save_path + name, IMFs)
 
