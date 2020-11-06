@@ -240,11 +240,16 @@ if __name__ == "__main__":
         PACband = np.zeros((Nchan, Nchan, Nbands,Nbands, 2))
         for key, pac in parallel_pacs:
             PACs[key[0], key[1]] = pac
-
-
+            for bx, bandx in enumerate(bands.keys()):
+                selx = (bands[bandx][0]<= pac[:,:,2]) & (pac[:,:,2] < bands[bandx][1])
+                for by, bandy in enumerate(bands.keys()):
+                    sely = (bands[bandy][0]<= pac[:,:,3]) & (pac[:,:,3] < bands[bandy][1])
+                    sel = np.where(selx & sely)
+                    PACband[key[0], key[1],bx,by] = pac[sel[0],sel[1]].mean(axis=0)[:2]
 
         with open(os.path.join(save_path, "{}.pickle".format(filename[:-4])), 'wb') as handle:
             pickle.dump(PACs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        np.save(os.path.join(save_path, f"{filename[:4]}_band.npy"), PACband)
 
 '''
 # Código para cuantificar mejoras en PAC. 
