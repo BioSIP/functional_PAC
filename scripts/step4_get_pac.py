@@ -266,3 +266,23 @@ for _ in range(repeats):
 t = timeit.default_timer() - starttime 
 print(f"Time for {repeats} sequential repeats is {t/repeats} :")
 '''
+
+
+def plot_band_connectivity(PACband, bands):
+    ch_names_g = ['Fp1','Fp2','F7','F3','Fz','F4','F8','FC5','FC1','FC2','FC6','T7',
+                'C3','C4','T8','TP9','CP5','CP1','CP2','CP6','TP10','P7','P3','PZ',
+                'P4','P8','PO9','O1','OZ','O2','PO10']
+    nx, ny = PACband.shape[2:4]
+    fig, ax = plt.subplots(nx, ny, figsize=(30,25))
+    for bx in range(nx):
+        for by in range(ny):
+            im = ax[bx][by].imshow(PACband[:,:,bx,by,1], vmin=0, vmax=1)
+            ax[bx][by].set_xticks(np.arange(31))
+            ax[bx][by].set_xticklabels(ch_names_g, rotation=90)
+            ax[bx][by].set_yticks(np.arange(31))
+            ax[bx][by].set_yticklabels(ch_names_g)
+            if bx==4:
+                ax[bx][by].set_xlabel(f'Band {list(bands.keys())[by]}')
+            if by==0:
+                ax[bx][by].set_ylabel(f'Band {list(bands.keys())[bx]}')
+    fig.colorbar(im, ax=ax[:, :], shrink=0.6)
