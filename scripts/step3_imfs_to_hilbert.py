@@ -6,6 +6,9 @@ from joblib import Parallel, delayed
 
 
 def normalize_IMF(IMF, thr=0.05, max_iter=20, current_iter=0):
+    if (IMF == 0).all():
+        return IMF
+
     envelope = np.abs(signal.hilbert(IMF))
     normalized_imf = np.divide(IMF, envelope)
     peaks = signal.find_peaks(envelope)[0]
@@ -25,7 +28,11 @@ if __name__ == "__main__":
     imfs_path = "../data/imfs_10"
     save_path = "../data/hilbert"
     files = [file for file in os.listdir(imfs_path) if file.endswith('.npy')]
-    for filename in tqdm(files):
+    bar = tqdm(files)
+    for filename in bar:
+        bar.set_description(filename)
+        if os.path.isfile(os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
+            continue
         imfs = np.load(os.path.join(imfs_path, filename))
         t = Parallel(n_jobs=10)(delayed(normalize_and_hilbert)(imfs[k]) for k in range(imfs.shape[0]))
         np.save(os.path.join(save_path, filename), np.array(t))

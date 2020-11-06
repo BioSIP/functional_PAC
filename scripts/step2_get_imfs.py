@@ -4,6 +4,7 @@ from scipy import signal
 from tqdm import tqdm
 from PyEMD import EMD
 from joblib import Parallel, delayed
+import MEMD_all as MEMD
 
 """This script obtains the IMF decomposition of the signals and saves it"""
 """It saves one file per subject containing #channels of array of shapes (imfs, samples)"""
@@ -39,7 +40,7 @@ def preprocessing(data, ref_channel=31, fs=500):
     # High filter
     sos_hp = signal.butter(10, 0.5, 'hp', fs=fs, output='sos')
 
-    for subject in tqdm(range(batch_data.shape[0]), desc="Preprocessing"):
+    for subject in range(batch_data.shape[0]):
         for channel in range(batch_data.shape[1]):
             # Reference channel substraction
             batch_data[subject, channel, :] = batch_data[subject, channel, :] - batch_data[subject, ref_channel, :]
@@ -54,6 +55,7 @@ def preprocessing(data, ref_channel=31, fs=500):
 
 def EMD_decomposition(data, name, max_imf=10):
     """Compute the EMD decomposition
+    EMD decomposition with #imfs < max_imf will be filled with zeros
 
     Args:
         data (numpy.ndarray): data with shape (subjects, channels, samples)
@@ -62,7 +64,7 @@ def EMD_decomposition(data, name, max_imf=10):
 
     Returns:
             : data with shape (subjects, channels, max_imf, samples)
-            EMD decomposition with #imfs < max_imf will be filled with zeros
+
 
     """
 
@@ -82,17 +84,42 @@ def EMD_decomposition(data, name, max_imf=10):
     return imfs_data
 
 
+def MEMD_decomposition(subject_data, dirs=64):
+    return MEMD.memd(subject_data, dirs)
+
+
+def MEMD_all_subjects(data, n_jobs=10):
+    subjects_MEMD = Parallel(n_jobs=n_jobs)(delayed(MEMD_decomposition)(data[k].copy()) for k in range(data.shape[0]))
+    max_imf = max([x.shape[0] for x in subjects_MEMD])
+
+    for index, imfs in enumerate(subjects_MEMD):
+        # Fill with zeros
+        subjects_MEMD[index] = np.vstack([imfs, np.zeros((max_imf - imfs.shape[0], imfs.shape[1], imfs.shape[2]))])
+
+    return np.array(subjects_MEMD)
+
+
 if __name__ == "__main__":
 
     path = "../data/eeg_data"
-    save_path = "../data/imfs_10/"
+    save_path = "../data/imfs_MEMD/"
 
     files = os.listdir(path)
 
-    for filename in tqdm(files):
+    bar = tqdm(files)
+    for filename in bar:
         name = filename[4:-4]
         filepath = os.path.join(path, filename)
         data = np.load(filepath)
+        bar.set_description(name + " Preprocessing data")
         data = preprocessing(data)
-        IMFs = EMD_decomposition(data, name)
+
+        # EMD
+        # IMFs = EMD_decomposition(data, name)
+
+        # MEMD
+        bar.set_description(name + "MEMD")
+        IMFs = MEMD_all_subjects(data)
         np.save(save_path + name, IMFs)
+
+        break
