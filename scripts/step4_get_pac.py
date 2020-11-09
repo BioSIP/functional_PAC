@@ -225,7 +225,7 @@ if __name__ == "__main__":
         bar.set_description("Filename: {}".format(filename))
 
         hilbert_t = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
-        channels_combinations = permutations(range(hilbert_t.shape[2], 2))
+        channels_combinations = permutations(range(hilbert_t.shape[2]), 2)
 
         for id_subject in tqdm(range(hilbert_t.shape[0]), desc="Subject #"):
 
