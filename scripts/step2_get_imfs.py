@@ -110,6 +110,8 @@ if __name__ == "__main__":
     for filename in bar:
         name = filename[4:-4]
         filepath = os.path.join(path, filename)
+        if os.path.isfile(os.path.join(save_path, name + ".npy")): 
+                continue
         data = np.load(filepath)
         bar.set_description(name + " Preprocessing data")
         data = preprocessing(data)
@@ -119,7 +121,5 @@ if __name__ == "__main__":
 
         # MEMD
         bar.set_description(name + " MEMD")
-        IMFs = MEMD_all_subjects(data)
+        IMFs = MEMD_all_subjects(data, n_jobs=5)
         np.save(save_path + name, IMFs)
-
-        break

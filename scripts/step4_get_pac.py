@@ -224,7 +224,7 @@ if __name__ == "__main__":
         if os.path.isfile(os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
             continue
         hilbert_t = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
-        channels_combinations = permutations(range(hilbert_t.shape[0], 2)
+        channels_combinations = permutations(range(hilbert_t.shape[0], 2))
 
         # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 

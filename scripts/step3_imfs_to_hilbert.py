@@ -25,8 +25,8 @@ def normalize_and_hilbert(imfs):
 
 
 if __name__ == "__main__":
-    imfs_path = "../data/imfs_10"
-    save_path = "../data/hilbert"
+    imfs_path = "../data/imfs_MEMD"
+    save_path = "../data/hilbert_MEMD"
     files = [file for file in os.listdir(imfs_path) if file.endswith('.npy')]
     bar = tqdm(files)
     for filename in bar:
@@ -34,5 +34,6 @@ if __name__ == "__main__":
         if os.path.isfile(os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
             continue
         imfs = np.load(os.path.join(imfs_path, filename))
-        t = Parallel(n_jobs=10)(delayed(normalize_and_hilbert)(imfs[k]) for k in range(imfs.shape[0]))
+        print(imfs.shape)
+        t = Parallel(n_jobs=5)(delayed(normalize_and_hilbert)(imfs[k]) for k in range(imfs.shape[0]))
         np.save(os.path.join(save_path, filename), np.array(t))
