@@ -242,7 +242,7 @@ if __name__ == "__main__":
             # for key, pac in parallel_pacs:
             #     PACs[key] = pac
 
-            Nchan, Nimfs = hilbert_t.shape[:2]
+            Nimfs, Nchan = hilbert_t.shape[:2]
             Nbands = len(bands)
             PACs = np.zeros((Nchan, Nchan, Nimfs, Nimfs, 4))
             PACband = np.zeros((Nchan, Nchan, Nbands, Nbands, 2))
