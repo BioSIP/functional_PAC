@@ -16,12 +16,13 @@ Bandas:
 
 """
 
-global bands 
+global bands
 bands = {'Delta': (0.5, 4),
-             'Theta': (4, 8),
-             'Alpha': (8, 12),
-             'Beta': (12, 25),
-             'Gamma': (25, 140)}
+         'Theta': (4, 8),
+         'Alpha': (8, 12),
+         'Beta': (12, 25),
+         'Gamma': (25, 140)}
+
 
 def centroide_espectral(frec, amp):
     num = frec * amp[:-1]
@@ -94,8 +95,9 @@ def MVL_Zscore(phase, amp):
     m_perc = (m_raw[..., None] > surrogate_m).sum(axis=-1) / numsurrogate
     return np.array([m_raw, m_norm, m_perc])
 
-def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500, 
-                numsurrogate=200, significance='quantile', pair='band'):    
+
+def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
+                numsurrogate=200, significance='quantile', pair='band'):
     """
     Implements the routine for computing the PAC matrices in a vectorized
     way. It includes the computation of the primary MVL_raw matrix, the computation
@@ -131,9 +133,9 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
     assert significance in {'quantile', 'zscore'}
     assert pair in {'imf', 'band'}
     # First, we extract the data from channel x and y
-    channel_x = hilbert_data[index_channel_x]
-    channel_y = hilbert_data[index_channel_y]
-    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 4)) 
+    channel_x = hilbert_data[:, index_channel_x, :]
+    channel_y = hilbert_data[:, index_channel_y, :]
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 4))
 
     # Extracts the amplitude, phase and instantaneous frequency 
     # from the Hilbert signal of channels x and y
@@ -177,9 +179,9 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
 
 
 def get_pac(index_channel_x, index_channel_y, hilbert_data):
-    """Input: channel index: int, hilber_data: shape ->(channel, imfs, samples)"""
-    channel_x = hilbert_data[index_channel_x]
-    channel_y = hilbert_data[index_channel_y]
+    """Input: channel index: int, hilber_data: shape ->(imfs, channel,  samples)"""
+    channel_x = hilbert_data[:, index_channel_x, :]
+    channel_y = hilbert_data[:, index_channel_y, :]
 
     fs = 500
     # Store (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2) for every hilbert transform
@@ -214,42 +216,48 @@ def get_pac(index_channel_x, index_channel_y, hilbert_data):
 
 if __name__ == "__main__":
 
-    hilbert_transform_path = "../data/hilbert"
-    save_path = "../data/descriptors_quantile"
+    hilbert_transform_path = "../data/hilbert_MEMD"
+    save_path = "../data/descriptors"
     hilbert_files = [file for file in os.listdir(hilbert_transform_path) if file.endswith('.npy')]
 
     bar = tqdm(hilbert_files)
     for filename in bar:
         bar.set_description("Filename: {}".format(filename))
-        if os.path.isfile(os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
-            continue
+
         hilbert_t = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
-        channels_combinations = permutations(range(hilbert_t.shape[0], 2))
+        channels_combinations = permutations(range(hilbert_t.shape[2], 2))
 
-        # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
+        for id_subject in tqdm(range(hilbert_t.shape[0]), desc="Subject #"):
 
-        parallel_pacs = Parallel(n_jobs=8)(
-            delayed(get_pac_par)(x, y, hilbert_t) for x, y in list(channels_combinations))
+            filename = "{}_{}".format(id_subject, filename)
+            if os.path.isfile(
+                    os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
+                continue
 
-        # for key, pac in parallel_pacs:
-        #     PACs[key] = pac
+            # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 
-        Nchan, Nimfs = hilbert_t.shape[:2]
-        Nbands = len(bands)
-        PACs = np.zeros((Nchan, Nchan, Nimfs, Nimfs, 4))
-        PACband = np.zeros((Nchan, Nchan, Nbands,Nbands, 2))
-        for key, pac in parallel_pacs:
-            PACs[key[0], key[1]] = pac
-            for bx, bandx in enumerate(bands.keys()):
-                selx = (bands[bandx][0]<= pac[:,:,2]) & (pac[:,:,2] < bands[bandx][1])
-                for by, bandy in enumerate(bands.keys()):
-                    sely = (bands[bandy][0]<= pac[:,:,3]) & (pac[:,:,3] < bands[bandy][1])
-                    sel = np.where(selx & sely)
-                    PACband[key[0], key[1],bx,by] = pac[sel[0],sel[1]].mean(axis=0)[:2]
+            parallel_pacs = Parallel(n_jobs=8)(
+                delayed(get_pac_par)(x, y, hilbert_t[id_subject]) for x, y in list(channels_combinations))
 
-        with open(os.path.join(save_path, "{}.pickle".format(filename[:-4])), 'wb') as handle:
-            pickle.dump(PACs, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        np.save(os.path.join(save_path, f"{filename[:4]}_band.npy"), PACband)
+            # for key, pac in parallel_pacs:
+            #     PACs[key] = pac
+
+            Nchan, Nimfs = hilbert_t.shape[:2]
+            Nbands = len(bands)
+            PACs = np.zeros((Nchan, Nchan, Nimfs, Nimfs, 4))
+            PACband = np.zeros((Nchan, Nchan, Nbands, Nbands, 2))
+            for key, pac in parallel_pacs:
+                PACs[key[0], key[1]] = pac
+                for bx, bandx in enumerate(bands.keys()):
+                    selx = (bands[bandx][0] <= pac[:, :, 2]) & (pac[:, :, 2] < bands[bandx][1])
+                    for by, bandy in enumerate(bands.keys()):
+                        sely = (bands[bandy][0] <= pac[:, :, 3]) & (pac[:, :, 3] < bands[bandy][1])
+                        sel = np.where(selx & sely)
+                        PACband[key[0], key[1], bx, by] = pac[sel[0], sel[1]].mean(axis=0)[:2]
+
+            with open(os.path.join(save_path, "{}.pickle".format(filename[:-4])), 'wb') as handle:
+                pickle.dump(PACs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            np.save(os.path.join(save_path, f"{filename[:-4]}_band.npy"), PACband)
 
 '''
 # Código para cuantificar mejoras en PAC. 
@@ -267,22 +275,21 @@ t = timeit.default_timer() - starttime
 print(f"Time for {repeats} sequential repeats is {t/repeats} :")
 '''
 
-
-def plot_band_connectivity(PACband, bands):
-    ch_names_g = ['Fp1','Fp2','F7','F3','Fz','F4','F8','FC5','FC1','FC2','FC6','T7',
-                'C3','C4','T8','TP9','CP5','CP1','CP2','CP6','TP10','P7','P3','PZ',
-                'P4','P8','PO9','O1','OZ','O2','PO10']
-    nx, ny = PACband.shape[2:4]
-    fig, ax = plt.subplots(nx, ny, figsize=(30,25))
-    for bx in range(nx):
-        for by in range(ny):
-            im = ax[bx][by].imshow(PACband[:,:,bx,by,1], vmin=0, vmax=1)
-            ax[bx][by].set_xticks(np.arange(31))
-            ax[bx][by].set_xticklabels(ch_names_g, rotation=90)
-            ax[bx][by].set_yticks(np.arange(31))
-            ax[bx][by].set_yticklabels(ch_names_g)
-            if bx==4:
-                ax[bx][by].set_xlabel(f'Band {list(bands.keys())[by]}')
-            if by==0:
-                ax[bx][by].set_ylabel(f'Band {list(bands.keys())[bx]}')
-    fig.colorbar(im, ax=ax[:, :], shrink=0.6)
+# def plot_band_connectivity(PACband, bands):
+#     ch_names_g = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7',
+#                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
+#                   'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+#     nx, ny = PACband.shape[2:4]
+#     fig, ax = plt.subplots(nx, ny, figsize=(30, 25))
+#     for bx in range(nx):
+#         for by in range(ny):
+#             im = ax[bx][by].imshow(PACband[:, :, bx, by, 1], vmin=0, vmax=1)
+#             ax[bx][by].set_xticks(np.arange(31))
+#             ax[bx][by].set_xticklabels(ch_names_g, rotation=90)
+#             ax[bx][by].set_yticks(np.arange(31))
+#             ax[bx][by].set_yticklabels(ch_names_g)
+#             if bx == 4:
+#                 ax[bx][by].set_xlabel(f'Band {list(bands.keys())[by]}')
+#             if by == 0:
+#                 ax[bx][by].set_ylabel(f'Band {list(bands.keys())[bx]}')
+#     fig.colorbar(im, ax=ax[:, :], shrink=0.6)
