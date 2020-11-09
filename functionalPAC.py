@@ -24,7 +24,14 @@ class PACMatrix(object):
     """
     Construye una matriz PAC
     """
-    pass
+    
+    def __init__(self):
+        pass
+
+    def parallel_pac(self):
+        pass
+
+    
 
 
 class HilbertHuang(object):
@@ -46,7 +53,6 @@ class HilbertHuang(object):
     Huang 2005. HUANG, Norden Eh. Hilbert-Huang transform and its applications. 
         World Scientific, 2005.
     """
-    pass
     
     def __init__(self, n_imf=10):
         self.emd = EMD()
@@ -124,7 +130,6 @@ class FunctionalPAC(object):
         cross-frequency coupling. Trends in cognitive sciences, 2010, vol. 14, no 11, 
         p. 506-515.
     """
-    pass
     
     def __init__(self, numsurrogate=200, significance='quantile', pair='band'):  
 
