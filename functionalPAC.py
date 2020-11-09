@@ -2,6 +2,7 @@ import numpy as np
 import scipy
 from PyEMD import EMD
 from scipy import signal
+import scripts/MEMD_all as MEMD
 
 """
 Vamos a hacerlo de forma que, dados:
@@ -34,7 +35,7 @@ class PACMatrix(object):
     
 
 
-class HilbertHuang(object):
+class HilbertHuangTransform(object):
     """
     TODO
     This class is intended to apply the Hibert-Huang transform (HHT) [Huang 2005] on 
@@ -55,7 +56,7 @@ class HilbertHuang(object):
     """
     
     def __init__(self, n_imf=10):
-        self.emd = EMD()
+        self.emd = MEMD()
         self.imfs = None
         self.normed = False # To be True when normalize_imfs has been applied
         if isinstance(n_imf, int):
@@ -67,6 +68,9 @@ class HilbertHuang(object):
 
     def signal_preprocessing(self, signal):
         pass
+        
+    def MEMD_decomposition(subject_data, dirs=64):
+        return MEMD.memd(subject_data, dirs)
 
     def normalize_IMF(self, thr=0.05, max_iter=20, current_iter=0):
         """Recursive implementation of IMF normalization procedure. 
@@ -101,14 +105,15 @@ class HilbertHuang(object):
         assert self.normed
         return signal.hilbert(self.imfs)
 
-    def funcname(self, parameter_list):
-        pass
 
     def fit(self, x):
         # estimate imfs. normalize imfs. apply hsa. k
         # estimate IMFs:
-        
-        pass
+        x_prep = self.signal_preprocessing(x)
+        self.imfs = self.MEMD_decomposition(x_prep)
+        self.normalize_IMF()
+        signal_hilbert = self.apply_hsa()
+        return signal_hilbert
 
     def predict(self, x):
         pass
@@ -139,6 +144,7 @@ class FunctionalPAC(object):
         self.pair = pair
         assert isinstance(numsurrogate, int)
         self.numsurrogate = numsurrogate
+        self.HHT = HilbertHuangTransform(n_imf=10)
         pass
 
     def funcname(self, parameter_list):
