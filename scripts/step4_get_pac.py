@@ -36,8 +36,8 @@ def MVL_par(phase, amp):
     return np.abs(np.inner(amp, np.exp(1j * phase)) / amp.shape[1])
 
 
-def get_pac_par(index_channel_x, index_channel_y, channel_x, channel_y, fs=500,
-                numsurrogate=200, significance='quantile', pair='band'):
+def get_pac_par(index_channel_x, index_channel_y, channel_x, channel_y, 
+                ce_x, ce_y, fs=500, numsurrogate=200, significance='quantile'):
     """
     Implements the routine for computing the PAC matrices in a vectorized
     way. It includes the computation of the primary MVL_raw matrix, the computation
@@ -51,16 +51,16 @@ def get_pac_par(index_channel_x, index_channel_y, channel_x, channel_y, fs=500,
     Args:
         index_channel_x (int): Index of channel providing phase.
         index_channel_y (int): Index of channel providing amplitude.
-        hilbert_data (numpy.ndarray or list of numpy.ndarray): [description]
+        channel_x (numpy.ndarray or list of numpy.ndarray): [description]
+        channel_y (numpy.ndarray or list of numpy.ndarray): [description]
+        ce_x (numpy.ndarray or list of numpy.ndarray): spectral centroids for x.
+        ce_y (numpy.ndarray or list of numpy.ndarray): spectral centroids for y.
         fs (int, optional): Sampling frequency of the data. Defaults to 500.
         numsurrogate (int, optional): Number of surrogate functions used to
                     estimate the significance matrix. Defaults to 200.
         significance ({'quantile', 'zscore'}): Chooses the type of significance
                     estimation of the coupling, via Z-score or quantile. 
                     Defaults to 'quantile'.
-        pair ({'imf', 'band'}): Specifies whether the PAC connectivity is
-                    estimated between bands or between IMFS.
-                    Defaults to 'band'. 
 
     Returns:
         index (tuple): x, y coordinates, equals to index_channel_x, and y
@@ -71,24 +71,18 @@ def get_pac_par(index_channel_x, index_channel_y, channel_x, channel_y, fs=500,
                                     [:,:,3] - Spectral Centroid for y
     """
     assert significance in {'quantile', 'zscore'}
-    assert pair in {'imf', 'band'}
     # First, we extract the data from channel x and y
     pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 4))
 
     # Extracts the amplitude, phase and instantaneous frequency 
     # from the Hilbert signal of channels x and y
-    amplitude_envelope_x = np.abs(channel_x)
     amplitude_envelope_y = np.abs(channel_y)
     insta_phase_x = np.unwrap(np.angle(channel_x))
-    insta_phase_y = np.unwrap(np.angle(channel_y))
-    # insta_freq_x = np.diff(insta_phase_x, axis=1) * fs / (2 * np.pi)
-    # insta_freq_y = np.diff(insta_phase_y, axis=1) * fs / (2 * np.pi)
 
     # Compute of the spectral centroid 
-    # ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
-    #                          ce_par(insta_freq_y, amplitude_envelope_y))
-    # pac[:, :, 2] = ce_x.T  # as a convention, it stays at values 3 and 4
-    # pac[:, :, 3] = ce_y.T
+    ce_x, ce_y = np.meshgrid(ce_x, ce_y)
+    pac[:, :, 2] = ce_x.T  # as a convention, it stays at values 3 and 4
+    pac[:, :, 3] = ce_y.T
 
     # Compute the raw MVL matrix from phase(x) and amplitude(y)
     mvl_raw = MVL_par(insta_phase_x, amplitude_envelope_y)
@@ -127,6 +121,8 @@ if __name__ == "__main__":
         bar.set_description("Filename: {}".format(filename))
 
         hilbert_t = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
+        #TODO Check how to load ce
+        ce = None
         channels_combinations = list(permutations(range(hilbert_t.shape[2]), 2))
         channels_combinations += [(i,i) for i in range(hilbert_t.shape[2])] 
 
@@ -141,7 +137,8 @@ if __name__ == "__main__":
 
             parallel_pacs = Parallel(n_jobs=8)(
                 delayed(get_pac_par)(x, y, hilbert_t[id_subject,:,x], 
-                        hilbert_t[id_subject,:,y]) for x, y in list(channels_combinations))
+                        hilbert_t[id_subject,:,y], ce[id_subject,:,x],
+                        ce[id_subject,:,y]) for x, y in list(channels_combinations))
 
             # for key, pac in parallel_pacs:
             #     PACs[key] = pac
