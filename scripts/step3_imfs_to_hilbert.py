@@ -19,55 +19,103 @@ def normalize_IMF(IMF, thr=0.05, max_iter=20, current_iter=0):
         normalized_imf = IMF
     return normalized_imf
 
-def centroide_espectral(frec, amp):
-    num = frec * amp[:-1]
-    num = np.sum(num)
-    den = np.sum(amp)
-    centroide = num / den
-    return centroide
 
 def normalize_and_hilbert(imfs):
     return signal.hilbert(np.apply_along_axis(normalize_IMF, -1, imfs))
 
-def pipelineTotal(imfs):
-    # 1. señal_hilbert_norm = normalize_and_hilbert()
-    # 2. usar CEs = estimar_CEs(señal_hilbert)-> np.mean(freq_instantanea)
-    # 3. htt = signal.hilbert(imfs_oriignales)
-    # 4. htt_def = htt[CEs>0.5]
-    # 5. Guardar htt_def, CEs porque nos viene bien pa luego. 
-    # A(t) = np.abs(htt)
-    # phi(t) = np.angle(señal_hilbert_norm)
-    # htt (t) = A(t)*np.exp(1j*phi(t))
-    pass
 
-def purge_IMF(imfs):
+# def centroide_espectral(frec, amp):
+#     num = frec * amp[:-1]
+#     num = np.sum(num)
+#     den = np.sum(amp)
+#     centroide = num / den
+#     return centroide
+
+def centroide_espectral(hilbert, fs=500):
+    insta_phase = np.unwrap(np.angle(hilbert))
+    insta_freq = np.diff(insta_phase) * fs / (2 * np.pi)
+    return np.mean(insta_freq, axis=-1)
+
+
+def purge_IMF(subject_original_imfs, subject_htt, purge_freq=.5):
     """[summary]
-    IMFs es matriz de (19, 31, 71000), devuelve: 
+    IMFs es matriz de (19, 31, 71000), devuelve:
     IMFs purgadas -> (10, 31, 71000)
         la purga es quitar todas aquellas IMFs que tienen un CE <0.5 Hz
-    CEs -> (10, 31)
     """
+    subject_freqs = centroide_espectral(subject_htt)
+    purged_imfs = []
+    purged_norm_hilbert = []
 
-    for index, imfs:
-            amplitude_envelope_x = np.abs(imf_ht_x)
-        instantaneous_phase_x = np.unwrap(np.angle(imf_ht_x))
-        instantaneous_frequency_x = (np.diff(instantaneous_phase_x) / (2.0 * np.pi) * fs)
+    for channel_idx in range(subject_original_imfs.shape[1]):
 
-        ce_x = centroide_espectral(instantaneous_frequency_x, amplitude_envelope_x)
+        freqs = subject_freqs[:, channel_idx]
 
-    return imfs_sin_mierdas, ces
+        channel_imfs = subject_original_imfs[:, channel_idx, :]
+        purged_imfs.append(channel_imfs[freqs >= purge_freq])
+
+        htt = subject_htt[:, channel_idx, :]
+        purged_norm_hilbert.append(htt[freqs >= purge_freq])
+
+    return purged_imfs, purged_norm_hilbert
+
+
+def fill_zeros(all_subjects):
+    max_imf = max([x.shape[0] for subject in all_subjects for x in subject])
+
+    for index, subject in enumerate(all_subjects):
+        for index2, channel_imfs in enumerate(subject):
+            all_subjects[index][index2] = np.vstack(
+                [channel_imfs, np.zeros((max_imf - channel_imfs.shape[0], channel_imfs.shape[1]))])
+
+    return np.array(all_subjects)
+
+
+# def pipelineTotal(imfs):
+#     # 1. señal_hilbert_norm = normalize_and_hilbert()
+#     # 2. usar CEs = estimar_CEs(señal_hilbert)-> np.mean(freq_instantanea)
+#     # 3. htt = signal.hilbert(imfs_oriignales)
+#     # 4. htt_def = htt[CEs>0.5]
+#     # 5. Guardar htt_def, CEs porque nos viene bien pa luego.
+#     # A(t) = np.abs(htt)
+#     # phi(t) = np.angle(señal_hilbert_norm)
+#     # htt (t) = A(t)*np.exp(1j*phi(t))
+#     pass
+
 
 if __name__ == "__main__":
     imfs_path = "../data/imfs_MEMD"
     save_path = "../data/hilbert_MEMD"
+
+    #Tests
+    # imfs_path = "../data/reduced_data"
+    # save_path = "../data/reduced_data"
+
     files = [file for file in os.listdir(imfs_path) if file.endswith('.npy')]
     bar = tqdm(files)
     for filename in bar:
         bar.set_description(filename)
         if os.path.isfile(os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
             continue
-        imfs = np.load(os.path.join(imfs_path, filename))
-        print(imfs.shape)
-        t = Parallel(n_jobs=5)(delayed(normalize_and_hilbert)(imfs[k]) for k in range(imfs.shape[0]))
-        t = purge_IMFs(t)
-        np.save(os.path.join(save_path, filename), np.array(t))
+        all_subject_imfs = np.load(os.path.join(imfs_path, filename))
+
+        # Normalize and hilbert
+        hilbert_norm = Parallel(n_jobs=5)(
+            delayed(normalize_and_hilbert)(all_subject_imfs[k]) for k in range(all_subject_imfs.shape[0]))
+
+        # We use the normalized hilbert to compute CE and purge those IMFs with CE < threshold (0.5Hz)
+        purged_IMFs = Parallel(n_jobs=5)(
+            delayed(purge_IMF)(all_subject_imfs[k], hilbert_norm[k]) for k in range(all_subject_imfs.shape[0]))
+
+        purged_IMFs_zeros = fill_zeros([x[0] for x in purged_IMFs])
+        purged_hilbert_norm = fill_zeros([x[1] for x in purged_IMFs])
+
+        hilbert = signal.hilbert(purged_IMFs_zeros)
+        ces = centroide_espectral(purged_hilbert_norm)
+        amp = np.abs(hilbert)
+        phase = np.angle(purged_hilbert_norm)
+        final_hilbert = amp * np.exp(1j * phase)
+
+        np.savez(os.path.join(save_path, filename), ces=ces, hilbert=final_hilbert)
+        # np.savez(os.path.join(save_path, "hilbert_test"), ces=ces, hilbert=final_hilbert)
+        # break
