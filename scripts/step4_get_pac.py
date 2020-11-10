@@ -96,7 +96,7 @@ def MVL_Zscore(phase, amp):
     return np.array([m_raw, m_norm, m_perc])
 
 
-def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
+def get_pac_par(index_channel_x, index_channel_y, channel_x, channel_y, fs=500,
                 numsurrogate=200, significance='quantile', pair='band'):
     """
     Implements the routine for computing the PAC matrices in a vectorized
@@ -133,8 +133,6 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
     assert significance in {'quantile', 'zscore'}
     assert pair in {'imf', 'band'}
     # First, we extract the data from channel x and y
-    channel_x = hilbert_data[:, index_channel_x, :]
-    channel_y = hilbert_data[:, index_channel_y, :]
     pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 4))
 
     # Extracts the amplitude, phase and instantaneous frequency 
@@ -143,14 +141,14 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert_data, fs=500,
     amplitude_envelope_y = np.abs(channel_y)
     insta_phase_x = np.unwrap(np.angle(channel_x))
     insta_phase_y = np.unwrap(np.angle(channel_y))
-    insta_freq_x = np.diff(insta_phase_x, axis=1) * fs / (2 * np.pi)
-    insta_freq_y = np.diff(insta_phase_y, axis=1) * fs / (2 * np.pi)
+    # insta_freq_x = np.diff(insta_phase_x, axis=1) * fs / (2 * np.pi)
+    # insta_freq_y = np.diff(insta_phase_y, axis=1) * fs / (2 * np.pi)
 
     # Compute of the spectral centroid 
-    ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
-                             ce_par(insta_freq_y, amplitude_envelope_y))
-    pac[:, :, 2] = ce_x.T  # as a convention, it stays at values 3 and 4
-    pac[:, :, 3] = ce_y.T
+    # ce_x, ce_y = np.meshgrid(ce_par(insta_freq_x, amplitude_envelope_x),
+    #                          ce_par(insta_freq_y, amplitude_envelope_y))
+    # pac[:, :, 2] = ce_x.T  # as a convention, it stays at values 3 and 4
+    # pac[:, :, 3] = ce_y.T
 
     # Compute the raw MVL matrix from phase(x) and amplitude(y)
     mvl_raw = MVL_par(insta_phase_x, amplitude_envelope_y)
@@ -238,7 +236,8 @@ if __name__ == "__main__":
             # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 
             parallel_pacs = Parallel(n_jobs=8)(
-                delayed(get_pac_par)(x, y, hilbert_t[id_subject]) for x, y in list(channels_combinations))
+                delayed(get_pac_par)(x, y, hilbert_t[id_subject,:,x], 
+                        hilbert_t[id_subject,:,y]) for x, y in list(channels_combinations))
 
             # for key, pac in parallel_pacs:
             #     PACs[key] = pac
