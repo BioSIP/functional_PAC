@@ -185,7 +185,7 @@ def get_pac(index_channel_x, index_channel_y, hilbert_data):
 
     fs = 500
     # Store (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2) for every hilbert transform
-    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5))
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 6))
 
     # Iteration over Hilbert Transforms in each channel
     for ht_index_x, imf_ht_x in enumerate(channel_x):
