@@ -185,7 +185,7 @@ def get_pac(index_channel_x, index_channel_y, hilbert_data):
 
     fs = 500
     # Store (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2) for every hilbert transform
-    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 6))
+    pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 5))
 
     # Iteration over Hilbert Transforms in each channel
     for ht_index_x, imf_ht_x in enumerate(channel_x):
@@ -204,7 +204,7 @@ def get_pac(index_channel_x, index_channel_y, hilbert_data):
 
             ce_y = centroide_espectral(instantaneous_frequency_y, amplitude_envelope_y)
 
-            mvl = np.zeros(4)
+            mvl = np.zeros(3)
 
             if ce_x < ce_y:  # Low frequencies phase modulates the amplitude of high frequencies
                 mvl = MVL_Zscore(instantaneous_phase_x, amplitude_envelope_y)

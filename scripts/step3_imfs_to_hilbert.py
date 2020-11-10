@@ -35,6 +35,9 @@ def pipelineTotal(imfs):
     # 3. htt = signal.hilbert(imfs_oriignales)
     # 4. htt_def = htt[CEs>0.5]
     # 5. Guardar htt_def, CEs porque nos viene bien pa luego. 
+    # A(t) = np.abs(htt)
+    # phi(t) = np.angle(señal_hilbert_norm)
+    # htt (t) = A(t)*np.exp(1j*phi(t))
     pass
 
 def purge_IMF(imfs):
