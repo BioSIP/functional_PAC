@@ -225,7 +225,8 @@ if __name__ == "__main__":
         bar.set_description("Filename: {}".format(filename))
 
         hilbert_t = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
-        channels_combinations = permutations(range(hilbert_t.shape[2]), 2)
+        channels_combinations = list(permutations(range(hilbert_t.shape[2]), 2))
+        channels_combinations += [(i,i) for i in range(hilbert_t.shape[2])] 
 
         for id_subject in tqdm(range(hilbert_t.shape[0]), desc="Subject #"):
 
@@ -275,15 +276,22 @@ t = timeit.default_timer() - starttime
 print(f"Time for {repeats} sequential repeats is {t/repeats} :")
 '''
 
-# def plot_band_connectivity(PACband, bands):
+# def plot_band_connectivity(PACband, bands, thr=None, ch=1):
 #     ch_names_g = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7',
 #                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
 #                   'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
 #     nx, ny = PACband.shape[2:4]
 #     fig, ax = plt.subplots(nx, ny, figsize=(30, 25))
+#     if ch==1:
+#         vmin, vmax = 0, 1
+#     else:
+#         vmin, vmax = PACband[...,ch].min(),PACband[...,ch].max()
 #     for bx in range(nx):
 #         for by in range(ny):
-#             im = ax[bx][by].imshow(PACband[:, :, bx, by, 1], vmin=0, vmax=1)
+#             if thr is None:
+#                 im = ax[bx][by].imshow(PACband[:, :, bx, by, ch], vmin=vmin, vmax=vmax)
+#             else:
+#                 im = ax[bx][by].imshow(PACband[:, :, bx, by, ch]>thr, vmin=vmin, vmax=vmax)
 #             ax[bx][by].set_xticks(np.arange(31))
 #             ax[bx][by].set_xticklabels(ch_names_g, rotation=90)
 #             ax[bx][by].set_yticks(np.arange(31))
@@ -293,3 +301,34 @@ print(f"Time for {repeats} sequential repeats is {t/repeats} :")
 #             if by == 0:
 #                 ax[bx][by].set_ylabel(f'Band {list(bands.keys())[bx]}')
 #     fig.colorbar(im, ax=ax[:, :], shrink=0.6)
+
+# def plot_band_multicolor(PACband, bands, thr=0.95):
+#     ch_names_g = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7',
+#                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
+#                   'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+#     nx, ny = PACband.shape[2:4]
+#     ticklabels = [None]
+#     bandnames = list(bands.keys())
+#     fig, ax = plt.subplots(figsize=(12, 10))
+#     pacnan = np.ones(PACband.shape[:2])*np.nan
+#     val = 1
+#     for bx in range(nx):
+#         for by in range(bx, ny):
+#             select = PACband[:, :, bx, by, 1]>thr
+#             pacnan[select] = val
+#             val += 1
+#             ticklabels.append(f'({bandnames[bx]}, {bandnames[by]})')
+
+#     im = ax.imshow(pacnan, vmin=0, vmax=20, cmap='tab20c')
+#     ax.set_xticks(np.arange(31))
+#     ax.set_xticklabels(ch_names_g, rotation=90)
+#     ax.set_yticks(np.arange(31))
+#     ax.set_yticklabels(ch_names_g)
+#     ax.set_xlabel('Channel giving phase')
+#     ax.set_ylabel('Channel receiving amplitude')
+#     cbar = fig.colorbar(im, ax=ax, shrink=0.6, ticks=np.arange(21))
+#     for _ in range(21-len(ticklabels)):
+#         ticklabels.append(None)
+#     cbar.ax.set_yticklabels(ticklabels)
+
+    
