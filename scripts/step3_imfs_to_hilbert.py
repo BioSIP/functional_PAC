@@ -31,7 +31,7 @@ def normalize_and_hilbert(imfs):
 
 def pipelineTotal(imfs):
     # 1. señal_hilbert_norm = normalize_and_hilbert()
-    # 2. usar CEs = estimar_CEs(señal_hilbert)
+    # 2. usar CEs = estimar_CEs(señal_hilbert)-> np.mean(freq_instantanea)
     # 3. htt = signal.hilbert(imfs_oriignales)
     # 4. htt_def = htt[CEs>0.5]
     # 5. Guardar htt_def, CEs porque nos viene bien pa luego. 
@@ -45,7 +45,7 @@ def purge_IMF(imfs):
     CEs -> (10, 31)
     """
 
-    for index, imfs 
+    for index, imfs:
             amplitude_envelope_x = np.abs(imf_ht_x)
         instantaneous_phase_x = np.unwrap(np.angle(imf_ht_x))
         instantaneous_frequency_x = (np.diff(instantaneous_phase_x) / (2.0 * np.pi) * fs)
