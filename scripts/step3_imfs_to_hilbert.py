@@ -19,10 +19,40 @@ def normalize_IMF(IMF, thr=0.05, max_iter=20, current_iter=0):
         normalized_imf = IMF
     return normalized_imf
 
+def centroide_espectral(frec, amp):
+    num = frec * amp[:-1]
+    num = np.sum(num)
+    den = np.sum(amp)
+    centroide = num / den
+    return centroide
 
 def normalize_and_hilbert(imfs):
     return signal.hilbert(np.apply_along_axis(normalize_IMF, -1, imfs))
 
+def pipelineTotal(imfs):
+    # 1. señal_hilbert_norm = normalize_and_hilbert()
+    # 2. usar CEs = estimar_CEs(señal_hilbert)
+    # 3. htt = signal.hilbert(imfs_oriignales)
+    # 4. htt_def = htt[CEs>0.5]
+    # 5. Guardar htt_def, CEs porque nos viene bien pa luego. 
+    pass
+
+def purge_IMF(imfs):
+    """[summary]
+    IMFs es matriz de (19, 31, 71000), devuelve: 
+    IMFs purgadas -> (10, 31, 71000)
+        la purga es quitar todas aquellas IMFs que tienen un CE <0.5 Hz
+    CEs -> (10, 31)
+    """
+
+    for index, imfs 
+            amplitude_envelope_x = np.abs(imf_ht_x)
+        instantaneous_phase_x = np.unwrap(np.angle(imf_ht_x))
+        instantaneous_frequency_x = (np.diff(instantaneous_phase_x) / (2.0 * np.pi) * fs)
+
+        ce_x = centroide_espectral(instantaneous_frequency_x, amplitude_envelope_x)
+
+    return imfs_sin_mierdas, ces
 
 if __name__ == "__main__":
     imfs_path = "../data/imfs_MEMD"
@@ -36,4 +66,5 @@ if __name__ == "__main__":
         imfs = np.load(os.path.join(imfs_path, filename))
         print(imfs.shape)
         t = Parallel(n_jobs=5)(delayed(normalize_and_hilbert)(imfs[k]) for k in range(imfs.shape[0]))
+        t = purge_IMFs(t)
         np.save(os.path.join(save_path, filename), np.array(t))
