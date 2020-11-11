@@ -21,7 +21,7 @@ def normalize_IMF(IMF, thr=0.05, max_iter=20, current_iter=0):
 
 
 def normalize_and_hilbert(imfs):
-    return signal.hilbert(np.apply_along_axis(normalize_IMF, -1, imfs))
+    return signal.hilbert(np.apply_along_axis(normalize_IMF, -1, imfs)).astype(np.complex64)
 
 
 # def centroide_espectral(frec, amp):
@@ -65,7 +65,8 @@ def fill_zeros(all_subjects):
     for index, subject in enumerate(all_subjects):
         for index2, channel_imfs in enumerate(subject):
             all_subjects[index][index2] = np.vstack(
-                [channel_imfs, np.zeros((max_imf - channel_imfs.shape[0], channel_imfs.shape[1]))])
+                [channel_imfs,
+                 np.zeros((max_imf - channel_imfs.shape[0], channel_imfs.shape[1])).astype(channel_imfs.dtype)])
 
     return np.array(all_subjects)
 
@@ -95,13 +96,16 @@ if __name__ == "__main__":
     bar = tqdm(files)
     for filename in bar:
         bar.set_description(filename)
+
         if os.path.isfile(
                 os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
             continue
-        all_subject_imfs = np.load(os.path.join(imfs_path, filename))
+        all_subject_imfs = np.load(os.path.join(imfs_path, filename)).astype(np.float32)
+
+        # # Test
+        # all_subject_imfs = np.load(os.path.join(imfs_path, "test_imfs.npy")).astype(np.float32)
 
         with Parallel(n_jobs=10, prefer="threads", verbose=20) as parallel:
-
             # Normalize and hilbert
             hilbert_norm = parallel(
                 delayed(normalize_and_hilbert)(all_subject_imfs[k]) for k in range(all_subject_imfs.shape[0]))
@@ -118,10 +122,21 @@ if __name__ == "__main__":
         del purged_IMFs
 
         print("Saving {}".format(filename[:-4]))
+
+        # # Test
+        # np.savez(os.path.join(save_path, "test_hilbert_f32"),
+        #          ces=centroide_espectral(purged_hilbert_norm_zeros),
+        #          hilbert=np.abs(signal.hilbert(purged_IMFs_zeros)).astype(np.complex64) * np.exp(
+        #              1j * np.angle(purged_hilbert_norm_zeros))
+        #          )
+
         np.savez(os.path.join(save_path, filename[:-4]),
                  ces=centroide_espectral(purged_hilbert_norm_zeros),
-                 hilbert=np.abs(signal.hilbert(purged_IMFs_zeros)) * np.exp(1j * np.angle(purged_hilbert_norm_zeros))
+                 hilbert=np.abs(signal.hilbert(purged_IMFs_zeros)).astype(np.complex64) * np.exp(
+                     1j * np.angle(purged_hilbert_norm_zeros))
                  )
-        # np.savez(os.path.join(save_path, "hilbert_test"), ces=ces, hilbert=final_hilbert)
 
         del purged_IMFs_zeros, purged_hilbert_norm_zeros
+
+        # Test
+        # break
