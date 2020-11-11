@@ -113,15 +113,13 @@ if __name__ == "__main__":
         del all_subject_imfs, hilbert_norm
 
         purged_IMFs_zeros = fill_zeros([x[0] for x in purged_IMFs])
-        purged_hilbert_norm = fill_zeros([x[1] for x in purged_IMFs])
+        purged_hilbert_norm_zeros = fill_zeros([x[1] for x in purged_IMFs])
 
         del purged_IMFs
 
-        hilbert = signal.hilbert(purged_IMFs_zeros)
-        ces = centroide_espectral(purged_hilbert_norm)
-        amp = np.abs(hilbert)
-        phase = np.angle(purged_hilbert_norm)
-        final_hilbert = amp * np.exp(1j * phase)
+        final_hilbert = np.abs(signal.hilbert(purged_IMFs_zeros)) * np.exp(1j * np.angle(purged_hilbert_norm_zeros))
 
-        np.savez(os.path.join(save_path, filename[:-4]), ces=ces, hilbert=final_hilbert)
+        print("Saving {}".format(filename[:-4]))
+        np.savez(os.path.join(save_path, filename[:-4]), ces=centroide_espectral(purged_hilbert_norm_zeros),
+                 hilbert=final_hilbert)
         # np.savez(os.path.join(save_path, "hilbert_test"), ces=ces, hilbert=final_hilbert)
