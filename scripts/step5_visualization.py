@@ -5,16 +5,18 @@ import os
 import matplotlib.pyplot as plt
 
 global bands
+global channel_n
 bands = {'Delta': (0.5, 4),
          'Theta': (4, 8),
          'Alpha': (8, 12),
          'Beta': (12, 25),
          'Gamma': (25, 140)}
 
-def plot_band_connectivity(PACband, bands, thr=None, ch=1):
-    ch_names_g = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7',
+channel_n = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7',
                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
                   'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+
+def plot_band_connectivity(PACband, bands, thr=None, ch=1):
     nx, ny = PACband.shape[2:4]
     fig, ax = plt.subplots(nx, ny, figsize=(30, 25))
     if ch==1:
@@ -28,9 +30,9 @@ def plot_band_connectivity(PACband, bands, thr=None, ch=1):
             else:
                 im = ax[bx][by].imshow(PACband[:, :, bx, by, ch]>thr, vmin=vmin, vmax=vmax)
             ax[bx][by].set_xticks(np.arange(31))
-            ax[bx][by].set_xticklabels(ch_names_g, rotation=90)
+            ax[bx][by].set_xticklabels(channel_n, rotation=90)
             ax[bx][by].set_yticks(np.arange(31))
-            ax[bx][by].set_yticklabels(ch_names_g)
+            ax[bx][by].set_yticklabels(channel_n)
             if bx == 4:
                 ax[bx][by].set_xlabel(f'Band {list(bands.keys())[by]}')
             if by == 0:
@@ -38,9 +40,7 @@ def plot_band_connectivity(PACband, bands, thr=None, ch=1):
     fig.colorbar(im, ax=ax[:, :], shrink=0.6)
 
 def plot_band_multicolor(PACband, bands, thr=0.95):
-    ch_names_g = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7',
-                  'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
-                  'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+    
     nx, ny = PACband.shape[2:4]
     ticklabels = [None]
     bandnames = list(bands.keys())
@@ -56,9 +56,9 @@ def plot_band_multicolor(PACband, bands, thr=0.95):
 
     im = ax.imshow(pacnan, vmin=0, vmax=20, cmap='tab20c')
     ax.set_xticks(np.arange(31))
-    ax.set_xticklabels(ch_names_g, rotation=90)
+    ax.set_xticklabels(channel_n, rotation=90)
     ax.set_yticks(np.arange(31))
-    ax.set_yticklabels(ch_names_g)
+    ax.set_yticklabels(channel_n)
     ax.set_xlabel('Channel giving phase')
     ax.set_ylabel('Channel receiving amplitude')
     cbar = fig.colorbar(im, ax=ax, shrink=0.6, ticks=np.arange(21))
@@ -75,4 +75,32 @@ plot_band_connectivity(PACband, bands, ch=1, thr=0.95)
 
 plot_band_multicolor(PACband, bands, thr=0.95)
 
+from nilearn import plotting
+# correlation_matrix = PACband[...,0,1,0].copy()
+# np.fill_diagonal(correlation_matrix, 0)
+# plotting.plot_matrix(correlation_matrix, figure=(10, 8), labels=channel_n, reorder=True)
 
+def plot_nilearn_connectivity(PACband, bands, thr=None, ch=1, diag=False):
+    nx, ny = PACband.shape[2:4]
+    _ , ax = plt.subplots(nx, ny, figsize=(30, 25))
+    for bx in range(nx):
+        for by in range(ny):
+            if ch==1:
+                vmin, vmax = 0, 1
+            else:
+                vmin, vmax = min(PACband[...,bx,by,ch].min(),0),PACband[...,bx,by,ch].max()
+            if thr is None:
+                correlation_matrix = PACband[...,bx,by,ch].copy()
+            else:
+                correlation_matrix = PACband[...,bx,by,ch].copy()>thr
+            if diag:
+                np.fill_diagonal(correlation_matrix, 0)
+            plotting.plot_matrix(correlation_matrix, axes=ax[bx,by], 
+                                    labels=channel_n, reorder=True, 
+                                    vmin=vmin, vmax=vmax)
+            if bx == 4:
+                ax[bx][by].set_xlabel(f'Band {list(bands.keys())[by]}')
+            if by == 0:
+                ax[bx][by].set_ylabel(f'Band {list(bands.keys())[bx]}')
+
+plot_nilearn_connectivity(PACband, bands, ch=1, thr=0.95)
