@@ -120,9 +120,9 @@ if __name__ == "__main__":
     for filename in bar:
         bar.set_description("Filename: {}".format(filename))
 
-        hilbert_t = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
-        #TODO Check how to load ce
-        ce = None
+        data = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
+        hilbert_t = data['hilbert']
+        ce = data['ces']
         channels_combinations = list(permutations(range(hilbert_t.shape[2]), 2))
         channels_combinations += [(i,i) for i in range(hilbert_t.shape[2])] 
 
@@ -136,9 +136,9 @@ if __name__ == "__main__":
             # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 
             parallel_pacs = Parallel(n_jobs=8)(
-                delayed(get_pac_par)(x, y, hilbert_t[id_subject,:,x], 
-                        hilbert_t[id_subject,:,y], ce[id_subject,:,x],
-                        ce[id_subject,:,y]) for x, y in list(channels_combinations))
+                delayed(get_pac_par)(x, y, hilbert_t[id_subject,x], 
+                        hilbert_t[id_subject,y], ce[id_subject,x],
+                        ce[id_subject,y]) for x, y in list(channels_combinations))
 
             # for key, pac in parallel_pacs:
             #     PACs[key] = pac
