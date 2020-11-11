@@ -68,39 +68,63 @@ def plot_band_multicolor(PACband, bands, thr=0.95):
 
 
 descriptor_dir = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors'
-filename = 'guardar_pac_band.npy'
+filename = 'guardar_pac_32_band.npy'
 PACband = np.load(os.path.join(descriptor_dir, filename))
     
 plot_band_connectivity(PACband, bands, ch=1, thr=0.95)
 
-plot_band_multicolor(PACband, bands, thr=0.95)
+# plot_band_multicolor(PACband, bands, thr=0.95)
 
-from nilearn import plotting
-# correlation_matrix = PACband[...,0,1,0].copy()
-# np.fill_diagonal(correlation_matrix, 0)
-# plotting.plot_matrix(correlation_matrix, figure=(10, 8), labels=channel_n, reorder=True)
+# from nilearn import plotting
+# # correlation_matrix = PACband[...,0,1,0].copy()
+# # np.fill_diagonal(correlation_matrix, 0)
+# # plotting.plot_matrix(correlation_matrix, figure=(10, 8), labels=channel_n, reorder=True)
 
-def plot_nilearn_connectivity(PACband, bands, thr=None, ch=1, diag=False):
-    nx, ny = PACband.shape[2:4]
-    _ , ax = plt.subplots(nx, ny, figsize=(30, 25))
-    for bx in range(nx):
-        for by in range(ny):
-            if ch==1:
-                vmin, vmax = 0, 1
-            else:
-                vmin, vmax = min(PACband[...,bx,by,ch].min(),0),PACband[...,bx,by,ch].max()
-            if thr is None:
-                correlation_matrix = PACband[...,bx,by,ch].copy()
-            else:
-                correlation_matrix = PACband[...,bx,by,ch].copy()>thr
-            if diag:
-                np.fill_diagonal(correlation_matrix, 0)
-            plotting.plot_matrix(correlation_matrix, axes=ax[bx,by], 
-                                    labels=channel_n, reorder=True, 
-                                    vmin=vmin, vmax=vmax)
-            if bx == 4:
-                ax[bx][by].set_xlabel(f'Band {list(bands.keys())[by]}')
-            if by == 0:
-                ax[bx][by].set_ylabel(f'Band {list(bands.keys())[bx]}')
+# def plot_nilearn_connectivity(PACband, bands, thr=None, ch=1, diag=False,
+#                                 reorder=True):
+#     nx, ny = PACband.shape[2:4]
+#     _ , ax = plt.subplots(nx, ny, figsize=(30, 25))
+#     for bx in range(nx):
+#         for by in range(ny):
+#             if ch==1:
+#                 vmin, vmax = -1, 1
+#             else:
+#                 vmin, vmax = min(PACband[...,bx,by,ch].min(),0),PACband[...,bx,by,ch].max()
+#             if thr is None:
+#                 correlation_matrix = PACband[...,bx,by,ch].copy()
+#             else:
+#                 correlation_matrix = PACband[...,bx,by,ch].copy()>thr
+#             if diag:
+#                 np.fill_diagonal(correlation_matrix, 0)
+#             plotting.plot_matrix(correlation_matrix, axes=ax[bx,by], 
+#                                     labels=channel_n, reorder=reorder, 
+#                                     vmin=vmin, vmax=vmax)
+#             if bx == 4:
+#                 ax[bx][by].set_xlabel(f'Band {list(bands.keys())[by]}')
+#             if by == 0:
+#                 ax[bx][by].set_ylabel(f'Band {list(bands.keys())[bx]}')
 
-plot_nilearn_connectivity(PACband, bands, ch=1, thr=0.95)
+# plot_nilearn_connectivity(PACband, bands, ch=1, thr=0.95)
+
+
+from visbrain.objects import TopoObj, ColorbarObj, SceneObj
+kw_top = dict(margin=15 / 100, chan_offset=(0., 0.1, 0.), chan_size=10)
+kw_cbar = dict(cbtxtsz=12, txtsz=10., width=.3, txtcolor='black', cbtxtsh=1.8,
+               rect=(0., -2., 1., 4.), border=False)
+sc = SceneObj(bgcolor='white', size=(3000, 1300))
+nx, ny = PACband.shape[2:4]
+for bx in range(nx):
+    for by in range(bx,ny):
+        correlation_matrix = PACband[...,bx,by,0]
+        data = np.diag(correlation_matrix)
+        t_obj = TopoObj('topo', data, channels=channel_n, cmap='Spectral_r', **kw_top)
+        cb_obj = ColorbarObj(t_obj, cblabel='MVL', **kw_cbar)
+        connect = PACband[...,bx,by,1]
+        select = connect > 0.95
+        if np.any(select):
+            t_obj.connect(connect, select = select, cmap='inferno', antialias=True,line_width=4.)
+        sc.add_to_subplot(t_obj, row=by, col=bx*2, title=f'Phase:{list(bands.keys())[bx]} to Amp:{list(bands.keys())[by]}',
+                        title_color='black', width_max=400)
+        sc.add_to_subplot(cb_obj, row=by, col=bx*2+1, width_max=100)
+sc.link(-1)
+sc.screenshot('/home/pakitochus/scene2.eps', print_size=(30,15))
