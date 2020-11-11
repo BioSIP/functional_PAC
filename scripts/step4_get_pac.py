@@ -25,7 +25,6 @@ bands = {'Delta': (0.5, 4),
 
 def MVL_par(phase, amp):
     """Returns the value for Mean Vector Length 
-
     Args:
         phase (numpy.ndarray): [description]
         amp (numpy.ndarray): [description]
@@ -36,8 +35,8 @@ def MVL_par(phase, amp):
     return np.abs(np.inner(amp, np.exp(1j * phase)) / amp.shape[1])
 
 
-def get_pac_par(index_channel_x, index_channel_y, channel_x, channel_y, 
-                ce_x, ce_y, fs=500, numsurrogate=200, significance='quantile'):
+def get_pac_par(index_channel_x, index_channel_y, hilbert, ces, 
+                fs=500, numsurrogate=200, significance='quantile'):
     """
     Implements the routine for computing the PAC matrices in a vectorized
     way. It includes the computation of the primary MVL_raw matrix, the computation
@@ -72,6 +71,8 @@ def get_pac_par(index_channel_x, index_channel_y, channel_x, channel_y,
     """
     assert significance in {'quantile', 'zscore'}
     # First, we extract the data from channel x and y
+    channel_x = hilbert[index_channel_x]
+    channel_y = hilbert[index_channel_y]
     pac = np.zeros((channel_x.shape[0], channel_y.shape[0], 4))
 
     # Extracts the amplitude, phase and instantaneous frequency 
@@ -80,7 +81,7 @@ def get_pac_par(index_channel_x, index_channel_y, channel_x, channel_y,
     insta_phase_x = np.unwrap(np.angle(channel_x))
 
     # Compute of the spectral centroid 
-    ce_x, ce_y = np.meshgrid(ce_x, ce_y)
+    ce_x, ce_y = np.meshgrid(ces[index_channel_x], ces[index_channel_y])
     pac[:, :, 2] = ce_x.T  # as a convention, it stays at values 3 and 4
     pac[:, :, 3] = ce_y.T
 
@@ -123,8 +124,9 @@ if __name__ == "__main__":
         data = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
         hilbert_t = data['hilbert']
         ce = data['ces']
-        channels_combinations = list(permutations(range(hilbert_t.shape[2]), 2))
-        channels_combinations += [(i,i) for i in range(hilbert_t.shape[2])] 
+        del data
+        channels_combinations = list(permutations(range(hilbert_t.shape[1]), 2))
+        channels_combinations += [(i,i) for i in range(hilbert_t.shape[1])] 
 
         for id_subject in tqdm(range(hilbert_t.shape[0]), desc="Subject #"):
 
@@ -134,16 +136,15 @@ if __name__ == "__main__":
                 continue
 
             # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
-
-            parallel_pacs = Parallel(n_jobs=8)(
-                delayed(get_pac_par)(x, y, hilbert_t[id_subject,x], 
-                        hilbert_t[id_subject,y], ce[id_subject,x],
-                        ce[id_subject,y]) for x, y in list(channels_combinations))
+            
+            parallel_pacs = Parallel(n_jobs=2, prefer="threads")(
+                delayed(get_pac_par)(x, y, hilbert_t[id_subject], ce[id_subject]) for x, y in list(channels_combinations)
+                )
 
             # for key, pac in parallel_pacs:
             #     PACs[key] = pac
 
-            Nimfs, Nchan = hilbert_t.shape[:2]
+            Nchan, Nimfs = hilbert_t.shape[1:3]
             Nbands = len(bands)
             PACs = np.zeros((Nchan, Nchan, Nimfs, Nimfs, 4))
             PACband = np.zeros((Nchan, Nchan, Nbands, Nbands, 2))
@@ -175,7 +176,8 @@ for _ in range(repeats):
 t = timeit.default_timer() - starttime 
 print(f"Time for {repeats} sequential repeats is {t/repeats} :")
 '''
-
+# import matplotlib.pyplot as plt
+# 
 # def plot_band_connectivity(PACband, bands, thr=None, ch=1):
 #     ch_names_g = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7',
 #                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
