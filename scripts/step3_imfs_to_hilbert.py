@@ -117,9 +117,11 @@ if __name__ == "__main__":
 
         del purged_IMFs
 
-        final_hilbert = np.abs(signal.hilbert(purged_IMFs_zeros)) * np.exp(1j * np.angle(purged_hilbert_norm_zeros))
-
         print("Saving {}".format(filename[:-4]))
-        np.savez(os.path.join(save_path, filename[:-4]), ces=centroide_espectral(purged_hilbert_norm_zeros),
-                 hilbert=final_hilbert)
+        np.savez(os.path.join(save_path, filename[:-4]),
+                 ces=centroide_espectral(purged_hilbert_norm_zeros),
+                 hilbert=np.abs(signal.hilbert(purged_IMFs_zeros)) * np.exp(1j * np.angle(purged_hilbert_norm_zeros))
+                 )
         # np.savez(os.path.join(save_path, "hilbert_test"), ces=ces, hilbert=final_hilbert)
+
+        del purged_IMFs_zeros, purged_hilbert_norm_zeros
