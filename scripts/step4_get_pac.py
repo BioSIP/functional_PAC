@@ -138,7 +138,7 @@ if __name__ == "__main__":
             # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
             
             parallel_pacs = Parallel(n_jobs=2, prefer="threads")(
-                delayed(get_pac_par)(x, y, hilbert_t[id_subject], ce[id_subject]) for x, y in list(channels_combinations)
+                delayed(get_pac_par)(x, y, hilbert_t[id_subject], ce[id_subject], numsurrogate=400) for x, y in list(channels_combinations)
                 )
 
             # for key, pac in parallel_pacs:
