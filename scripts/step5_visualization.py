@@ -68,7 +68,7 @@ def plot_band_multicolor(PACband, bands, thr=0.95):
 
 
 descriptor_dir = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors'
-filename = 'guardar_pac_32_band.npy'
+filename = 'subject_0_32_band.npy'
 PACband = np.load(os.path.join(descriptor_dir, filename))
     
 plot_band_connectivity(PACband, bands, ch=1, thr=0.95)
@@ -120,6 +120,7 @@ for bx in range(nx):
         t_obj = TopoObj('topo', data, channels=channel_n, cmap='Spectral_r', **kw_top)
         cb_obj = ColorbarObj(t_obj, cblabel='MVL', **kw_cbar)
         connect = PACband[...,bx,by,1]
+        np.fill_diagonal(connect, 0)
         select = connect > 0.95
         if np.any(select):
             t_obj.connect(connect, select = select, cmap='inferno', antialias=True,line_width=4.)
@@ -127,4 +128,4 @@ for bx in range(nx):
                         title_color='black', width_max=400)
         sc.add_to_subplot(cb_obj, row=by, col=bx*2+1, width_max=100)
 sc.link(-1)
-sc.screenshot('/home/pakitochus/scene2.eps', print_size=(30,15))
+sc.screenshot('/home/pakitochus/scene_subject_0.eps', print_size=(30,15))
