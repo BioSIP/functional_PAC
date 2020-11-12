@@ -66,9 +66,9 @@ def plot_band_multicolor(PACband, bands, thr=0.95):
         ticklabels.append(None)
     cbar.ax.set_yticklabels(ticklabels)
 
-
+subject_id=0
 descriptor_dir = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors'
-filename = 'subject_0_32_band.npy'
+filename = f'subject_{subject_id}_32_band.npy'
 PACband = np.load(os.path.join(descriptor_dir, filename))
     
 plot_band_connectivity(PACband, bands, ch=1, thr=0.95)
@@ -108,24 +108,28 @@ plot_band_connectivity(PACband, bands, ch=1, thr=0.95)
 
 
 from visbrain.objects import TopoObj, ColorbarObj, SceneObj
-kw_top = dict(margin=15 / 100, chan_offset=(0., 0.1, 0.), chan_size=10)
-kw_cbar = dict(cbtxtsz=12, txtsz=10., width=.3, txtcolor='black', cbtxtsh=1.8,
-               rect=(0., -2., 1., 4.), border=False)
-sc = SceneObj(bgcolor='white', size=(3000, 1300))
-nx, ny = PACband.shape[2:4]
-for bx in range(nx):
-    for by in range(bx,ny):
-        correlation_matrix = PACband[...,bx,by,0]
-        data = np.diag(correlation_matrix)
-        t_obj = TopoObj('topo', data, channels=channel_n, cmap='Spectral_r', **kw_top)
-        cb_obj = ColorbarObj(t_obj, cblabel='MVL', **kw_cbar)
-        connect = PACband[...,bx,by,1]
-        np.fill_diagonal(connect, 0)
-        select = connect > 0.95
-        if np.any(select):
-            t_obj.connect(connect, select = select, cmap='inferno', antialias=True,line_width=4.)
-        sc.add_to_subplot(t_obj, row=by, col=bx*2, title=f'Phase:{list(bands.keys())[bx]} to Amp:{list(bands.keys())[by]}',
-                        title_color='black', width_max=400)
-        sc.add_to_subplot(cb_obj, row=by, col=bx*2+1, width_max=100)
-sc.link(-1)
-sc.screenshot('/home/pakitochus/scene_subject_0.eps', print_size=(30,15))
+
+def plot_visbrain_connectivity(PACband, subject_id):
+    kw_top = dict(margin=15 / 100, chan_offset=(0., 0.1, 0.), chan_size=10)
+    kw_cbar = dict(cbtxtsz=12, txtsz=10., width=.3, txtcolor='black', cbtxtsh=1.8,
+                rect=(0., -2., 1., 4.), border=False)
+    sc = SceneObj(bgcolor='white', size=(3000, 1300))
+    nx, ny = PACband.shape[2:4]
+    for bx in range(nx):
+        for by in range(bx,ny):
+            correlation_matrix = PACband[...,bx,by,0]
+            data = np.diag(correlation_matrix)
+            t_obj = TopoObj('topo', data, channels=channel_n, cmap='Spectral_r', **kw_top)
+            cb_obj = ColorbarObj(t_obj, cblabel='MVL pac measure', **kw_cbar)
+            connect = PACband[...,bx,by,1]
+            np.fill_diagonal(connect, 0)
+            select = connect > 0.95
+            if np.any(select):
+                t_obj.connect(connect, select = select, cmap='inferno', antialias=True,line_width=4.)
+            sc.add_to_subplot(t_obj, row=by, col=bx*2, title=f'Phase:{list(bands.keys())[bx]} to Amp:{list(bands.keys())[by]}',
+                            title_color='black', width_max=400)
+            sc.add_to_subplot(cb_obj, row=by, col=bx*2+1, width_max=100)
+    sc.link(-1)
+    sc.screenshot(f'connect_subject_{subject_id}.eps', print_size=(30,15))
+
+plot_visbrain_connectivity(PACband, subject_id)
