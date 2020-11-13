@@ -41,10 +41,10 @@ datos_dlx = load_subgroup(descriptor_path, group='D')
 def plot_band_connectivity(PACband, bands, thr=None, ch=1, fusion=False):
     nx, ny = PACband.shape[2:4]
     fig, ax = plt.subplots(nx, ny, figsize=(30, 25))
-    if ch==1:
-        vmin, vmax = 0, 1
-    else:
-        vmin, vmax = PACband[...,ch].min(),PACband[...,ch].max()
+    # if ch==1:
+    #     vmin, vmax = 0, 1
+    # else:
+    vmin, vmax = PACband[...,ch].min(),PACband[...,ch].max()
     for bx in range(nx):
         for by in range(bx,ny):
             if thr is None:
@@ -69,6 +69,8 @@ def plot_band_connectivity(PACband, bands, thr=None, ch=1, fusion=False):
 
 
 datos_avg = np.nanmean(datos_ctl,axis=0)
+datos_std = np.nanstd(datos_ctl, axis=0)
+datos_z = (datos_ctl-datos_avg[None,...])/datos_std[None,...]
 
 from visbrain.objects import TopoObj, ColorbarObj, SceneObj
 
@@ -96,3 +98,7 @@ def plot_visbrain_connectivity(PACband, group, thr=0.94):
     sc.screenshot(f'connect_avg_{group}.eps', print_size=(30,15))
 
 plot_visbrain_connectivity(datos_avg, 'control', thr=0.7)
+
+
+def permutation_statistics(group_a, group_b):
+    
