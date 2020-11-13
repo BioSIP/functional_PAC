@@ -16,6 +16,8 @@ channel_n = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'F
                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
                   'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
 
+descriptor_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors'
+
 def plot_band_connectivity(PACband, bands, thr=None, ch=1):
     nx, ny = PACband.shape[2:4]
     fig, ax = plt.subplots(nx, ny, figsize=(30, 25))
@@ -67,11 +69,16 @@ def plot_band_multicolor(PACband, bands, thr=0.95):
     cbar.ax.set_yticklabels(ticklabels)
 
 subject_id=1
-descriptor_dir = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors'
-filename = f'subject_{subject_id}_band.npy'
-PACband = np.load(os.path.join(descriptor_dir, filename))
+
+
+
+filenames = [fi for fi in os.listdir(descriptor_path) if fi.endswith('npy')]
+
+filename = filenames[7]
+PACband = np.load(os.path.join(descriptor_path, filename))
     
-plot_band_connectivity(PACband, bands, ch=1, thr=0.95)
+# plt.imshow(PACband[...,4,4,0])
+plot_band_connectivity(PACband, bands, ch=0, thr=0.95)
 
 # plot_band_multicolor(PACband, bands, thr=0.95)
 
