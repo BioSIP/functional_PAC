@@ -23,6 +23,7 @@ bands = {'Delta': (0.5, 4),
          'Beta': (12, 25),
          'Gamma': (25, 140)}
 
+
 def MVL_par(phase, amp):
     """Returns the value for Mean Vector Length 
     Args:
@@ -35,7 +36,7 @@ def MVL_par(phase, amp):
     return np.abs(np.inner(amp, np.exp(1j * phase)) / amp.shape[1])
 
 
-def get_pac_par(index_channel_x, index_channel_y, hilbert, ces, 
+def get_pac_par(index_channel_x, index_channel_y, hilbert, ces,
                 fs=500, numsurrogate=200, significance='quantile'):
     """
     Implements the routine for computing the PAC matrices in a vectorized
@@ -113,10 +114,9 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert, ces,
 
 if __name__ == "__main__":
 
-    hilbert_transform_path = "../data/hilbert_MEMD"
+    hilbert_transform_path = "../data/hilbert_MEMD/"
     save_path = "../data/descriptors"
-    hilbert_files = [file for file in os.listdir(hilbert_transform_path) if file.endswith('.npy')]
-
+    hilbert_files = [file for file in os.listdir(hilbert_transform_path) if file.endswith('.npz')]
     bar = tqdm(hilbert_files)
     for filename in bar:
         bar.set_description("Filename: {}".format(filename))
@@ -126,20 +126,27 @@ if __name__ == "__main__":
         ce = data['ces']
         del data
         channels_combinations = list(permutations(range(hilbert_t.shape[1]), 2))
-        channels_combinations += [(i,i) for i in range(hilbert_t.shape[1])] 
+        channels_combinations += [(i, i) for i in range(hilbert_t.shape[1])]
 
         for id_subject in tqdm(range(hilbert_t.shape[0]), desc="Subject #"):
 
-            filename = "{}_{}".format(id_subject, filename)
+            subject_filename = "{}_{}".format(id_subject, filename)
+            check_filename = subject_filename[:-4] + ".pickle"
             if os.path.isfile(
-                    os.path.join(save_path, filename)):  # Check if file already exists to avoid the processing
+                    os.path.join(save_path, check_filename)):  # Check if file already exists to avoid the processing
                 continue
+            lock_filename_path = os.path.join(save_path, check_filename + ".lock")
+            if os.path.isfile(lock_filename_path):  # Check if file already exists to avoid the processing
+                continue
+            with open(lock_filename_path, 'w') as fp:
+                pass
 
             # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
-            
-            parallel_pacs = Parallel(n_jobs=2, prefer="threads")(
-                delayed(get_pac_par)(x, y, hilbert_t[id_subject], ce[id_subject], numsurrogate=400) for x, y in list(channels_combinations)
-                )
+
+            parallel_pacs = Parallel(n_jobs=10, prefer="threads", verbose=5)(
+                delayed(get_pac_par)(x, y, hilbert_t[id_subject], ce[id_subject], numsurrogate=1000)
+                for x, y in list(channels_combinations)
+            )
 
             # for key, pac in parallel_pacs:
             #     PACs[key] = pac
@@ -150,29 +157,30 @@ if __name__ == "__main__":
             PACband = np.zeros((Nchan, Nchan, Nbands, Nbands, 2))
             for key, pac in parallel_pacs:
                 PACs[key[0], key[1]] = pac
-                for bx, bandx in enumerate(bands.keys()):
-                    selx = (bands[bandx][0] <= pac[:, :, 2]) & (pac[:, :, 2] < bands[bandx][1])
-                    for by, bandy in enumerate(bands.keys()):
-                        sely = (bands[bandy][0] <= pac[:, :, 3]) & (pac[:, :, 3] < bands[bandy][1])
-                        sel = np.where(selx & sely)
-                        PACband[key[0], key[1], bx, by] = pac[sel[0], sel[1]].mean(axis=0)[:2]
+            for bx, bandx in enumerate(bands.keys()):
+                selx = (bands[bandx][0] <= pac[:, :, 2]) & (pac[:, :, 2] < bands[bandx][1])
+            for by, bandy in enumerate(bands.keys()):
+                sely = (bands[bandy][0] <= pac[:, :, 3]) & (pac[:, :, 3] < bands[bandy][1])
+            sel = np.where(selx & sely)
+            PACband[key[0], key[1], bx, by] = pac[sel[0], sel[1]].mean(axis=0)[:2]
 
-            with open(os.path.join(save_path, "{}.pickle".format(filename[:-4])), 'wb') as handle:
+            with open(os.path.join(save_path, "{}.pickle".format(subject_filename[:-4])), 'wb') as handle:
                 pickle.dump(PACs, handle, protocol=pickle.HIGHEST_PROTOCOL)
-            np.save(os.path.join(save_path, f"{filename[:-4]}_band.npy"), PACband)
+            np.save(os.path.join(save_path, f"{subject_filename[:-4]}_band.npy"), PACband)
 
-'''
-# Código para cuantificar mejoras en PAC. 
-repeats = 50
-starttime = timeit.default_timer()
-for _ in range(repeats):
-    pac = get_pac_par(index_channel_x, index_channel_y, hilbert_data)
-t = timeit.default_timer() - starttime 
-print(f"Time for {repeats} parallel repeats is {t/repeats} :")
-
-starttime = timeit.default_timer()
-for _ in range(repeats):
-    pac = get_pac(index_channel_x, index_channel_y, hilbert_data)
-t = timeit.default_timer() - starttime 
-print(f"Time for {repeats} sequential repeats is {t/repeats} :")
-'''
+            os.remove(lock_filename_path)
+            '''
+            # Código para cuantificar mejoras en PAC. 
+            repeats = 50
+            starttime = timeit.default_timer()
+            for _ in range(repeats):
+                pac = get_pac_par(index_channel_x, index_channel_y, hilbert_data)
+            t = timeit.default_timer() - starttime 
+            print(f"Time for {repeats} parallel repeats is {t/repeats} :")
+            
+            starttime = timeit.default_timer()
+            for _ in range(repeats):
+                pac = get_pac(index_channel_x, index_channel_y, hilbert_data)
+            t = timeit.default_timer() - starttime 
+            print(f"Time for {repeats} sequential repeats is {t/repeats} :")
+            '''
