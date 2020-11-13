@@ -1,7 +1,7 @@
 import numpy as np
 import visbrain as vs
 import os
-
+import re
 import matplotlib.pyplot as plt
 
 global bands
@@ -24,10 +24,75 @@ filenames = [fi for fi in os.listdir(descriptor_path) if fi.endswith('npy')]
 
 filename = filenames[0]
 
+def load_subgroup(path, stimulus=2, group='C'):
+    filenames = [fi for fi in os.listdir(descriptor_path) if fi.endswith('npy')]
+    r = re.compile(f'\d*_7_{stimulus}_{group}_band.npy')
+    filenames_r = list(filter(r.match, filenames))
+    N = len(filenames_r)
+    data = np.zeros((N, len(channel_n), len(channel_n), len(bands), len(bands), 2))
+    for i,fil in enumerate(filenames_r):
+        data[i] = np.load(os.path.join(path, fil))
+    return data
+
+datos_ctl = load_subgroup(descriptor_path)
+
+datos_dlx = load_subgroup(descriptor_path, group='D')
+
+def plot_band_connectivity(PACband, bands, thr=None, ch=1, fusion=False):
+    nx, ny = PACband.shape[2:4]
+    fig, ax = plt.subplots(nx, ny, figsize=(30, 25))
+    if ch==1:
+        vmin, vmax = 0, 1
+    else:
+        vmin, vmax = PACband[...,ch].min(),PACband[...,ch].max()
+    for bx in range(nx):
+        for by in range(bx,ny):
+            if thr is None:
+                im = ax[bx][by].imshow(PACband[:, :, bx, by, ch], vmin=vmin, vmax=vmax)
+            else:
+                display = PACband[:, :, bx, by, ch]>thr
+                if fusion:
+                    display = PACband[:,:,bx,by,0]*display
+                im = ax[bx][by].imshow(display, vmin=vmin, vmax=vmax)
+            ax[bx][by].set_xticks(np.arange(31))
+            ax[bx][by].set_xticklabels(channel_n, rotation=90)
+            ax[bx][by].set_yticks(np.arange(31))
+            ax[bx][by].set_yticklabels(channel_n)
+            if bx == 0:
+                ax[bx][by].set_title(f'Band {list(bands.keys())[by]}')
+            if by == 0:
+                ax[bx][by].set_ylabel(f'Band {list(bands.keys())[bx]}')
+    fig.colorbar(im, ax=ax[:, :], shrink=0.6)
+    return fig
+
+# plot_band_connectivity(np.nanmean(datos_ctl,axis=0), bands, ch=1, thr=0.7, fusion=True)
 
 
-# plt.imshow(PACband[...,4,4,0])
-plot_band_connectivity(PACband, bands, ch=0, thr=0.95)
-for filename in filenames:
-    PACband = np.load(os.path.join(descriptor_path, filename))
-    print(f'for {filename}, total : {(PACband[...,1]>0).sum()}')
+datos_avg = np.nanmean(datos_ctl,axis=0)
+
+from visbrain.objects import TopoObj, ColorbarObj, SceneObj
+
+def plot_visbrain_connectivity(PACband, group, thr=0.94):
+    kw_top = dict(margin=15 / 100, chan_offset=(0., 0.1, 0.), chan_size=10)
+    kw_cbar = dict(cbtxtsz=12, txtsz=10., width=.3, txtcolor='black', cbtxtsh=1.8,
+                rect=(0., -2., 1., 4.), border=False)
+    sc = SceneObj(bgcolor='white', size=(3000, 1300))
+    nx, ny = PACband.shape[2:4]
+    for bx in range(nx):
+        for by in range(bx,ny):
+            correlation_matrix = PACband[...,bx,by,0]
+            data = np.diag(correlation_matrix)
+            t_obj = TopoObj('topo', data, channels=channel_n, cmap='Spectral_r', **kw_top)
+            cb_obj = ColorbarObj(t_obj, cblabel='MVL pac measure', **kw_cbar)
+            connect = PACband[...,bx,by,1]
+            np.fill_diagonal(connect, 0)
+            select = connect > thr
+            if np.any(select):
+                t_obj.connect(correlation_matrix, select = select, cmap='inferno', antialias=True,line_width=4.)
+            sc.add_to_subplot(t_obj, row=bx, col=by*2, title=f'Phase:{list(bands.keys())[bx]} to Amp:{list(bands.keys())[by]}',
+                            title_color='black', width_max=400)
+            sc.add_to_subplot(cb_obj, row=bx, col=by*2+1, width_max=100)
+    sc.link(-1)
+    sc.screenshot(f'connect_avg_{group}.eps', print_size=(30,15))
+
+plot_visbrain_connectivity(datos_avg, 'control', thr=0.7)
