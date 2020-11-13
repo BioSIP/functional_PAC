@@ -95,6 +95,7 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert, ces,
 
     if significance == 'zscore':
         # Gets the Z-score matrix from the distribution of surrogate MVLs
+        # TODO: sequential estimation of mean and std to avoid memory problems.
         mvls = np.zeros(mvl_raw.shape + (numsurrogate,))
         for i, k in enumerate(skip):
             surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
