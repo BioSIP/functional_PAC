@@ -19,12 +19,14 @@ from tqdm import tqdm
 
 """Output: EEG_7_{HZ}_{C|RD}.npy binary numpy files """
 
-root_path = "/media/NAS/Datos/dislexia/eeg/timeseries_entero/7/"
+root_path = "/home/marco/timeseries_entero/7/"
 save_path = "../data/eeg_data/"
 for target in ['C', 'RD']:
     for hz in [2, 8, 20]:
         path = os.path.join(root_path, target, str(hz))
-        files = [file for file in os.listdir(path) if file.endswith('.dat')]
+        files = [file for file in sorted(os.listdir(path)) if file.endswith('.dat')]
+        with open(save_path+"subjects_order_{}_{}.txt".format(hz, target), "w") as output:
+            output.write(str(files))
         datamatrix = np.zeros((len(files), 32, 75100))
         bar = tqdm(files)
         for index, f in enumerate(bar):
