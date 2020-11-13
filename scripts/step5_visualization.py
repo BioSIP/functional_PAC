@@ -75,10 +75,12 @@ subject_id=1
 filenames = [fi for fi in os.listdir(descriptor_path) if fi.endswith('npy')]
 
 filename = filenames[7]
-PACband = np.load(os.path.join(descriptor_path, filename))
     
 # plt.imshow(PACband[...,4,4,0])
 plot_band_connectivity(PACband, bands, ch=0, thr=0.95)
+for filename in filenames:
+    PACband = np.load(os.path.join(descriptor_path, filename))
+    print(f'for {filename}, total : {(PACband[...,1]>0).sum()}')
 
 # plot_band_multicolor(PACband, bands, thr=0.95)
 
