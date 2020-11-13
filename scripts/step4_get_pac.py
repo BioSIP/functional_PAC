@@ -102,11 +102,12 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert, ces,
         mvl_s = (mvl_raw - mvls.mean(axis=2)) / mvls.std(axis=2)
     elif significance == 'quantile':
         # And the quantile matrix from the distribution of surrogate MVLs
-        mvls = np.zeros(mvl_raw.shape + (numsurrogate,))
+        mvls = np.zeros(mvl_raw.shape)
         for i, k in enumerate(skip):
             surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
-            mvls[..., i] = MVL_par(insta_phase_x, surrogate_amplitude)
-        mvl_s = (mvl_raw[..., None] > mvls).sum(axis=2) / numsurrogate
+            MVLcandidate = MVL_par(insta_phase_x, surrogate_amplitude)
+            mvls += mvl_raw> MVLcandidate
+        mvl_s = mvls / numsurrogate
     pac[:, :, :2] = np.stack((mvl_raw, mvl_s)).transpose((2, 1, 0))
 
     return (index_channel_x, index_channel_y), pac
