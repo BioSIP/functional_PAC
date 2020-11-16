@@ -117,7 +117,7 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert, ces,
 if __name__ == "__main__":
 
     hilbert_transform_path = "../data/hilbert_MEMD/"
-    save_path = "/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/hilbert_MEMD/test"
+    save_path = "..data/descriptors"
     hilbert_files = [file for file in os.listdir(hilbert_transform_path) if file.endswith('.npz')]
     bar = tqdm(hilbert_files)
     for filename in bar:
