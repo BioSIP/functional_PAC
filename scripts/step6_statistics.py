@@ -34,9 +34,9 @@ def load_subgroup(path, stimulus=2, group='C'):
         data[i] = np.load(os.path.join(path, fil))
     return data
 
-datos_ctl = load_subgroup(descriptor_path)
+datos_ctl = load_subgroup(descriptor_path, group='C')
 
-datos_dlx = load_subgroup(descriptor_path, group='D')
+datos_dlx = load_subgroup(descriptor_path, group='RD')
 
 def plot_band_connectivity(PACband, bands, thr=None, ch=1, fusion=False):
     nx, ny = PACband.shape[2:4]
@@ -44,15 +44,16 @@ def plot_band_connectivity(PACband, bands, thr=None, ch=1, fusion=False):
     # if ch==1:
     #     vmin, vmax = 0, 1
     # else:
-    vmin, vmax = PACband[...,ch].min(),PACband[...,ch].max()
     for bx in range(nx):
         for by in range(bx,ny):
             if thr is None:
+                vmin, vmax = PACband[...,ch].min(),PACband[...,ch].max()
                 im = ax[bx][by].imshow(PACband[:, :, bx, by, ch], vmin=vmin, vmax=vmax)
             else:
-                display = PACband[:, :, bx, by, ch]>thr
+                display = np.abs(PACband[:, :, bx, by, ch])>thr
                 if fusion:
                     display = PACband[:,:,bx,by,0]*display
+                vmin, vmax = display[...,ch].min(),display[...,ch].max()
                 im = ax[bx][by].imshow(display, vmin=vmin, vmax=vmax)
             ax[bx][by].set_xticks(np.arange(31))
             ax[bx][by].set_xticklabels(channel_n, rotation=90)
@@ -65,12 +66,22 @@ def plot_band_connectivity(PACband, bands, thr=None, ch=1, fusion=False):
     fig.colorbar(im, ax=ax[:, :], shrink=0.6)
     return fig
 
-# plot_band_connectivity(np.nanmean(datos_ctl,axis=0), bands, ch=1, thr=0.7, fusion=True)
+plot_band_connectivity(np.nanmean(datos_ctl,axis=0), bands, ch=1, thr=0.6, fusion=True)
+plot_band_connectivity(np.nanmean(datos_dlx,axis=0), bands, ch=1, thr=0.6, fusion=True)
 
 
 datos_avg = np.nanmean(datos_ctl,axis=0)
 datos_std = np.nanstd(datos_ctl, axis=0)
-datos_z = (datos_ctl-datos_avg[None,...])/datos_std[None,...]
+z_ctl = (datos_ctl-datos_avg[None,...])/datos_std[None,...]
+
+
+datos_avg = np.nanmean(datos_dlx,axis=0)
+datos_std = np.nanstd(datos_dlx, axis=0)
+z_dlx = (datos_dlx-datos_avg[None,...])/datos_std[None,...]
+
+plot_band_connectivity(np.nanmean(z_ctl,axis=0), bands, ch=0)#, thr=0.6, fusion=True)
+plot_band_connectivity(np.nanmean(z_dlx,axis=0), bands, ch=0)#, thr=0.6, fusion=True)
+
 
 from visbrain.objects import TopoObj, ColorbarObj, SceneObj
 
@@ -99,6 +110,33 @@ def plot_visbrain_connectivity(PACband, group, thr=0.94):
 
 plot_visbrain_connectivity(datos_avg, 'control', thr=0.7)
 
+from scipy.stats import ttest_ind, mannwhitneyu
 
-def permutation_statistics(group_a, group_b):
-    
+def tstatistic(group_a,group_b, formula=ttest_ind):
+    stats = np.zeros(group_a.shape[1:])
+    stats_p = np.zeros(group_a.shape[1:])
+    for cx in range(stats.shape[0]):
+        for cy in range(stats.shape[1]):
+            for bx in range(stats.shape[2]):
+                for by in range(stats.shape[3]):
+                    vala = group_a[:,cx,cy,bx,by]
+                    valb = group_b[:,cx,cy,bx,by]
+                    t, p = formula(vala[np.isnan(vala[:,0])==False,0],
+                                                    valb[np.isnan(valb[:,0])==False,0])
+                    stats[cx,cy,bx,by,0] = t
+                    stats_p[cx,cy,bx,by,0] = p
+                    t, p = formula(vala[np.isnan(vala[:,1])==False,1],
+                                                    valb[np.isnan(valb[:,1])==False,1])
+                    stats[cx,cy,bx,by,1] = t
+                    stats_p[cx,cy,bx,by,1] = p
+    return stats, stats_p
+
+stats, stats_p = tstatistic(datos_ctl, datos_dlx, formula=mannwhitneyu)
+
+M= np.prod(stats.shape[0:-1])
+alfa = 0.05
+plot_band_connectivity(stats_p<=(1-(1-alfa)**(1/M)), bands, ch=0)
+plot_band_connectivity(stats_p, bands, ch=0, thr=2.96)
+
+# def permutation_statistics(group_a, group_b):
+plt.hist(stats.flatten())
