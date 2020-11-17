@@ -7,7 +7,7 @@ from joblib import Parallel, delayed
 from itertools import permutations
 from scipy.stats import shapiro
 import pickle
-
+import argparse
 """This script saves a dictionary with the MVL values in the form
 key: tuple: (channel_x, channel_y)
 values: matrix -> shape ((#hilbert_transforms of channel x, #hilbert_transforms of channel y, 6) -> last shape item is (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2)
@@ -116,8 +116,15 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert, ces,
 
 if __name__ == "__main__":
 
-    hilbert_transform_path = "../data/hilbert_MEMD/"
-    save_path = "..data/descriptors"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_folder', type=str)
+    parser.add_argument('output_folder', type=str)
+    args = parser.parse_args()
+
+    hilbert_transform_path = args.input_folder
+    save_path = args.output_folder
+
+
     hilbert_files = [file for file in os.listdir(hilbert_transform_path) if file.endswith('.npz')]
     bar = tqdm(hilbert_files)
     for filename in bar:

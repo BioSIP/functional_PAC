@@ -3,6 +3,14 @@ from scipy import signal
 import os
 from tqdm import tqdm
 from joblib import Parallel, delayed
+import argparse
+
+global bands
+bands = {'Delta': (0.5, 4),
+         'Theta': (4, 8),
+         'Alpha': (8, 12),
+         'Beta': (12, 25),
+         'Gamma': (25, 140)}
 
 
 def normalize_IMF(IMF, thr=0.05, max_iter=20, current_iter=0):
@@ -37,24 +45,33 @@ def centroide_espectral(hilbert, fs=500):
     return np.mean(insta_freq, axis=-1)
 
 
-def purge_IMF(subject_original_imfs, subject_htt, purge_freq=.5):
+def purge_IMF(subject_original_imfs, subject_htt, sum_imf, purge_freq=.5, ):
     """[summary]
     IMFs es matriz de (19, 31, 71000), devuelve:
     IMFs purgadas -> (10, 31, 71000)
         la purga es quitar todas aquellas IMFs que tienen un CE <0.5 Hz
     """
     subject_freqs = centroide_espectral(subject_htt)
-    purged_imfs = []
-    purged_norm_hilbert = []
 
-    for channel_idx in range(subject_original_imfs.shape[1]):
-        freqs = subject_freqs[:, channel_idx]
+    if sum_imf:
+        purged_imfs = np.zeros((len(bands),) + subject_original_imfs.shape[1:])
+        for i, band in enumerate(bands):
+            select = (subject_freqs >= bands[band][0]) & (subject_freqs < bands[band][1])
+            purged_imfs[i] = subject_original_imfs[select].sum(axis=0)
+        purged_norm_hilbert = normalize_and_hilbert(purged_imfs)
 
-        channel_imfs = subject_original_imfs[:, channel_idx, :]
-        purged_imfs.append(channel_imfs[freqs >= purge_freq])
+    else:
+        purged_imfs = []
+        purged_norm_hilbert = []
 
-        htt = subject_htt[:, channel_idx, :]
-        purged_norm_hilbert.append(htt[freqs >= purge_freq])
+        for channel_idx in range(subject_original_imfs.shape[1]):
+            freqs = subject_freqs[:, channel_idx]
+
+            channel_imfs = subject_original_imfs[:, channel_idx, :]
+            purged_imfs.append(channel_imfs[freqs >= purge_freq])
+
+            htt = subject_htt[:, channel_idx, :]
+            purged_norm_hilbert.append(htt[freqs >= purge_freq])
 
     return purged_imfs, purged_norm_hilbert
 
@@ -84,8 +101,14 @@ def fill_zeros(all_subjects):
 
 
 if __name__ == "__main__":
-    imfs_path = "../data/imfs_MEMD"
-    save_path = "../data/hilbert_MEMD_sort"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_folder', type=str)
+    parser.add_argument('output_folder', type=str)
+    parser.add_argument("-s", "--sum_imfs", action="store_true")
+    args = parser.parse_args()
+
+    imfs_path = args.input_folder
+    save_path = args.output_folder
 
     # Tests
     # imfs_path = "../data/reduced_data"
@@ -112,12 +135,17 @@ if __name__ == "__main__":
 
             # We use the normalized hilbert to compute CE and purge those IMFs with CE < threshold (0.5Hz)
             purged_IMFs = parallel(
-                delayed(purge_IMF)(all_subject_imfs[k], hilbert_norm[k]) for k in range(all_subject_imfs.shape[0]))
+                delayed(purge_IMF)(all_subject_imfs[k], hilbert_norm[k], args.sum_imfs) for k in
+                range(all_subject_imfs.shape[0]))
 
         del all_subject_imfs, hilbert_norm
 
-        purged_IMFs_zeros = fill_zeros([x[0] for x in purged_IMFs])
-        purged_hilbert_norm_zeros = fill_zeros([x[1] for x in purged_IMFs])
+        if not args.sum_imfs:
+            purged_IMFs_zeros = fill_zeros([x[0] for x in purged_IMFs])
+            purged_hilbert_norm_zeros = fill_zeros([x[1] for x in purged_IMFs])
+        else:
+            purged_IMFs_zeros = np.array([x[0] for x in purged_IMFs])
+            purged_hilbert_norm_zeros = np.array([x[1] for x in purged_IMFs])
 
         del purged_IMFs
 
