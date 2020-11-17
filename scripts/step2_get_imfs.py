@@ -104,8 +104,7 @@ if __name__ == "__main__":
     path = "../data/eeg_data"
     save_path = "../data/imfs_MEMD/"
 
-    files = os.listdir(path)
-
+    files = [x for x in os.listdir(path) if x.endswith(".npy")]
     bar = tqdm(files)
     for filename in bar:
         name = filename[4:-4]
@@ -121,5 +120,5 @@ if __name__ == "__main__":
 
         # MEMD
         bar.set_description(name + " MEMD")
-        IMFs = MEMD_all_subjects(data, n_jobs=5)
+        IMFs = MEMD_all_subjects(data, n_jobs=2)
         np.save(save_path + name, IMFs)

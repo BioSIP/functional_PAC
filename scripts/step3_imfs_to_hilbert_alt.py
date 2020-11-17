@@ -55,7 +55,7 @@ def purge_IMF(subject_original_imfs, subject_htt, purge_freq=.5):
 
     for i, band in enumerate(bands):
         select = (subject_freqs >= bands[band][0]) & (subject_freqs < bands[band][1])
-        purged_imfs[i] = subject_original_imfs[select.all(axis=1)].sum(axis=0)
+        purged_imfs[i] = subject_original_imfs[select].sum(axis=0)
 
     purged_norm_hilbert = normalize_and_hilbert(purged_imfs)
     # for channel_idx in range(subject_original_imfs.shape[1]):
@@ -93,11 +93,11 @@ def purge_IMF(subject_original_imfs, subject_htt, purge_freq=.5):
 #     # htt (t) = A(t)*np.exp(1j*phi(t))
 #     pass
 
-pimfs, philb = purge_IMF(all_subject_imfs[0], hilbert_norm[0])
+# pimfs, philb = purge_IMF(all_subject_imfs[0], hilbert_norm[0])
 
 if __name__ == "__main__":
     imfs_path = "../data/imfs_MEMD"
-    save_path = "../data/hilbert_MEMD"
+    save_path = "../data/hilbert_MEMD_sum_sort"
 
     # Tests
     # imfs_path = "../data/reduced_data"

@@ -85,7 +85,7 @@ def fill_zeros(all_subjects):
 
 if __name__ == "__main__":
     imfs_path = "../data/imfs_MEMD"
-    save_path = "../data/hilbert_MEMD"
+    save_path = "../data/hilbert_MEMD_sort"
 
     # Tests
     # imfs_path = "../data/reduced_data"
