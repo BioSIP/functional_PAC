@@ -120,9 +120,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('input_folder', type=str)
     parser.add_argument('output_folder', type=str)
-    parser.add_argument("-j", "-jobs_number", type=int, default=10)
+    parser.add_argument("-j", "--jobs_number", type=int, default=10)
     args = parser.parse_args()
-
     hilbert_transform_path = args.input_folder
     save_path = args.output_folder
 
@@ -134,6 +133,7 @@ if __name__ == "__main__":
         data = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
         hilbert_t = data['hilbert']
         ce = data['ces']
+        print(hilbert_t.shape)
         del data
         channels_combinations = list(permutations(range(hilbert_t.shape[1]), 2))
         channels_combinations += [(i, i) for i in range(hilbert_t.shape[1])]
