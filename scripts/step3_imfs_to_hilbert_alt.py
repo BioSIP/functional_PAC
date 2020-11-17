@@ -54,7 +54,7 @@ def purge_IMF(subject_original_imfs, subject_htt, purge_freq=.5):
     purged_imfs = np.zeros((len(bands),)+subject_original_imfs.shape[1:])
 
     for i, band in enumerate(bands):
-        select = (subject_freqs >= bands[band][0]) & (subject_freqs < subject_freqs[band][1])
+        select = (subject_freqs >= bands[band][0]) & (subject_freqs < bands[band][1])
         purged_imfs[i] = subject_original_imfs[select].sum(axis=0)
 
     purged_norm_hilbert = normalize_and_hilbert(purged_imfs)
@@ -70,16 +70,16 @@ def purge_IMF(subject_original_imfs, subject_htt, purge_freq=.5):
     return purged_imfs, purged_norm_hilbert
 
 
-def fill_zeros(all_subjects):
-    max_imf = max([x.shape[0] for subject in all_subjects for x in subject])
+# def fill_zeros(all_subjects):
+#     max_imf = max([x.shape[0] for subject in all_subjects for x in subject])
 
-    for index, subject in enumerate(all_subjects):
-        for index2, channel_imfs in enumerate(subject):
-            all_subjects[index][index2] = np.vstack(
-                [channel_imfs,
-                 np.zeros((max_imf - channel_imfs.shape[0], channel_imfs.shape[1])).astype(channel_imfs.dtype)])
+#     for index, subject in enumerate(all_subjects):
+#         for index2, channel_imfs in enumerate(subject):
+#             all_subjects[index][index2] = np.vstack(
+#                 [channel_imfs,
+#                  np.zeros((max_imf - channel_imfs.shape[0], channel_imfs.shape[1])).astype(channel_imfs.dtype)])
 
-    return np.array(all_subjects)
+#     return np.array(all_subjects)
 
 
 # def pipelineTotal(imfs):
@@ -93,6 +93,7 @@ def fill_zeros(all_subjects):
 #     # htt (t) = A(t)*np.exp(1j*phi(t))
 #     pass
 
+pimfs, philb = purge_IMF(all_subject_imfs[0], hilbert_norm[0])
 
 if __name__ == "__main__":
     imfs_path = "../data/imfs_MEMD"
@@ -127,8 +128,8 @@ if __name__ == "__main__":
 
         del all_subject_imfs, hilbert_norm
 
-        purged_IMFs_zeros = fill_zeros([x[0] for x in purged_IMFs])
-        purged_hilbert_norm_zeros = fill_zeros([x[1] for x in purged_IMFs])
+        purged_IMFs_zeros = np.array([x[0] for x in purged_IMFs])
+        purged_hilbert_norm_zeros = np.array([x[1] for x in purged_IMFs])
 
         del purged_IMFs
 
