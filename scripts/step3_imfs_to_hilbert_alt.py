@@ -4,6 +4,13 @@ import os
 from tqdm import tqdm
 from joblib import Parallel, delayed
 
+global bands
+bands = {'Delta': (0.5, 4),
+         'Theta': (4, 8),
+         'Alpha': (8, 12),
+         'Beta': (12, 25),
+         'Gamma': (25, 140)}
+
 
 def normalize_IMF(IMF, thr=0.05, max_iter=20, current_iter=0):
     if (IMF == 0).all():
@@ -44,17 +51,21 @@ def purge_IMF(subject_original_imfs, subject_htt, purge_freq=.5):
         la purga es quitar todas aquellas IMFs que tienen un CE <0.5 Hz
     """
     subject_freqs = centroide_espectral(subject_htt)
-    purged_imfs = []
-    purged_norm_hilbert = []
+    purged_imfs = np.zeros((len(bands),)+subject_original_imfs.shape[1:])
 
-    for channel_idx in range(subject_original_imfs.shape[1]):
-        freqs = subject_freqs[:, channel_idx]
+    for i, band in enumerate(bands):
+        select = (subject_freqs >= bands[band][0]) & (subject_freqs < subject_freqs[band][1])
+        purged_imfs[i] = subject_original_imfs[select].sum(axis=0)
 
-        channel_imfs = subject_original_imfs[:, channel_idx, :]
-        purged_imfs.append(channel_imfs[freqs >= purge_freq])
+    purged_norm_hilbert = normalize_and_hilbert(purged_imfs)
+    # for channel_idx in range(subject_original_imfs.shape[1]):
+    #     freqs = subject_freqs[:, channel_idx]
 
-        htt = subject_htt[:, channel_idx, :]
-        purged_norm_hilbert.append(htt[freqs >= purge_freq])
+    #     channel_imfs = subject_original_imfs[:, channel_idx, :]
+    #     purged_imfs.append(channel_imfs[freqs >= purge_freq])
+
+    #     htt = subject_htt[:, channel_idx, :]
+    #     purged_norm_hilbert.append(htt[freqs >= purge_freq])
 
     return purged_imfs, purged_norm_hilbert
 
