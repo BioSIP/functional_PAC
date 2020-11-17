@@ -128,8 +128,8 @@ if __name__ == "__main__":
 
         del all_subject_imfs, hilbert_norm
 
-        purged_IMFs_zeros = np.array([x[0] for x in purged_IMFs])
-        purged_hilbert_norm_zeros = np.array([x[1] for x in purged_IMFs])
+        purged_IMFs_zeros = np.array([x[0].transpose((1,0,2)) for x in purged_IMFs])
+        purged_hilbert_norm_zeros = np.array([x[1].transpose((1,0,2)) for x in purged_IMFs])
 
         del purged_IMFs
 
