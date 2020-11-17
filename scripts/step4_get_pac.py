@@ -8,6 +8,7 @@ from itertools import permutations
 from scipy.stats import shapiro
 import pickle
 import argparse
+
 """This script saves a dictionary with the MVL values in the form
 key: tuple: (channel_x, channel_y)
 values: matrix -> shape ((#hilbert_transforms of channel x, #hilbert_transforms of channel y, 6) -> last shape item is (MVL, MVLz, MVL_Surrogate_Mean, MVL_Surrogate_Std, Freq1, Freq2)
@@ -107,7 +108,7 @@ def get_pac_par(index_channel_x, index_channel_y, hilbert, ces,
         for i, k in enumerate(skip):
             surrogate_amplitude = np.roll(amplitude_envelope_y, k, axis=1)
             MVLcandidate = MVL_par(insta_phase_x, surrogate_amplitude)
-            mvls += mvl_raw> MVLcandidate
+            mvls += mvl_raw > MVLcandidate
         mvl_s = mvls / numsurrogate
     pac[:, :, :2] = np.stack((mvl_raw, mvl_s)).transpose((2, 1, 0))
 
@@ -119,11 +120,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('input_folder', type=str)
     parser.add_argument('output_folder', type=str)
+    parser.add_argument("-j", "-jobs_number", type=int, default=10)
     args = parser.parse_args()
 
     hilbert_transform_path = args.input_folder
     save_path = args.output_folder
-
 
     hilbert_files = [file for file in os.listdir(hilbert_transform_path) if file.endswith('.npz')]
     bar = tqdm(hilbert_files)
@@ -152,7 +153,7 @@ if __name__ == "__main__":
 
             # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 
-            parallel_pacs = Parallel(n_jobs=10, prefer="threads", verbose=5)(
+            parallel_pacs = Parallel(n_jobs=args.jobs_number, prefer="threads", verbose=5)(
                 delayed(get_pac_par)(x, y, hilbert_t[id_subject], ce[id_subject], numsurrogate=10)
                 for x, y in list(channels_combinations)
             )
@@ -172,7 +173,7 @@ if __name__ == "__main__":
                         sely = (bands[bandy][0] <= pac[:, :, 3]) & (pac[:, :, 3] < bands[bandy][1])
                         sel = np.where(selx & sely)
                         PACband[key[0], key[1], bx, by] = pac[sel[0], sel[1]].mean(axis=0)[:2]
-                        
+
             with open(os.path.join(save_path, "{}.pickle".format(subject_filename[:-4])), 'wb') as handle:
                 pickle.dump(PACs, handle, protocol=pickle.HIGHEST_PROTOCOL)
             np.save(os.path.join(save_path, f"{subject_filename[:-4]}_band.npy"), PACband)
