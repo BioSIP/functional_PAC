@@ -131,12 +131,12 @@ def tstatistic(group_a,group_b, formula=ttest_ind):
                     stats_p[cx,cy,bx,by,1] = p
     return stats, stats_p
 
-stats, stats_p = tstatistic(datos_ctl, datos_dlx, formula=mannwhitneyu)
+stats, stats_p = tstatistic(datos_ctl, datos_dlx, formula=ttest_ind)
 
 M= np.prod(stats.shape[0:-1])
 alfa = 0.05
-plot_band_connectivity(stats_p<=(1-(1-alfa)**(1/M)), bands, ch=0)
-plot_band_connectivity(stats_p, bands, ch=0, thr=2.96)
+plot_band_connectivity(stats_p<0.0001, bands, ch=1)
+plot_band_connectivity(stats_p, bands, ch=1, thr=(1-(1-alfa)**(1/M)))
 
 # def permutation_statistics(group_a, group_b):
 plt.hist(stats.flatten())
