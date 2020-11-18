@@ -16,7 +16,7 @@ channel_n = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'F
                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
                   'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
 
-descriptor_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors'
+descriptor_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors_sum_sort'
 
 
 filenames = [fi for fi in os.listdir(descriptor_path) if fi.endswith('npy')]
@@ -131,7 +131,7 @@ def tstatistic(group_a,group_b, formula=ttest_ind):
                     stats_p[cx,cy,bx,by,1] = p
     return stats, stats_p
 
-stats, stats_p = tstatistic(datos_ctl, datos_dlx, formula=ttest_ind)
+stats, stats_p = tstatistic(datos_ctl, datos_dlx, formula=mannwhitneyu)
 
 M= np.prod(stats.shape[0:-1])
 alfa = 0.05
@@ -140,3 +140,6 @@ plot_band_connectivity(stats_p, bands, ch=1, thr=(1-(1-alfa)**(1/M)))
 
 # def permutation_statistics(group_a, group_b):
 plt.hist(stats.flatten())
+
+plot_visbrain_connectivity(1-stats_p, 'control', thr=0.999)
+
