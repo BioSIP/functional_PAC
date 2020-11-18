@@ -55,7 +55,7 @@ def purge_IMF(subject_original_imfs, subject_htt, purge_freq=.5):
 
     for i, band in enumerate(bands):
         select = (subject_freqs >= bands[band][0]) & (subject_freqs < bands[band][1])
-        purged_imfs[i] = subject_original_imfs[select].sum(axis=0)
+        purged_imfs[i] = subject_original_imfs[select.all(axis=1)].sum(axis=0)
 
     purged_norm_hilbert = normalize_and_hilbert(purged_imfs)
     # for channel_idx in range(subject_original_imfs.shape[1]):
@@ -128,8 +128,8 @@ if __name__ == "__main__":
 
         del all_subject_imfs, hilbert_norm
 
-        purged_IMFs_zeros = np.array([x[0].transpose((1,0,2)) for x in purged_IMFs])
-        purged_hilbert_norm_zeros = np.array([x[1].transpose((1,0,2)) for x in purged_IMFs])
+        purged_IMFs_zeros = np.array([np.moveaxis(x[0], 0, 1) for x in purged_IMFs])
+        purged_hilbert_norm_zeros = np.array([np.moveaxis(x[1], 0, 1) for x in purged_IMFs])
 
         del purged_IMFs
 
