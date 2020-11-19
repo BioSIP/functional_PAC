@@ -5,11 +5,10 @@ from tqdm import tqdm
 from PyEMD import EMD
 from joblib import Parallel, delayed
 import MEMD_all as MEMD
+import argparse
 
 """This script obtains the IMF decomposition of the signals and saves it"""
 """It saves one file per subject containing #channels of array of shapes (imfs, samples)"""
-# TODO argparser to obtain root path and save_path
-
 
 """
   @misc{pyemd,
@@ -23,7 +22,7 @@ import MEMD_all as MEMD
 """
 
 
-def preprocessing(data, ref_channel=31, fs=500):
+def preprocessing(data, ref_channel=31, fs=500, cut=500):
     """Signal preprocessing
 
     Args:
@@ -35,6 +34,7 @@ def preprocessing(data, ref_channel=31, fs=500):
         [type]: data with shape (subjects, channels-1, samples)
     """
     batch_data = data.copy()
+    batch_data = batch_data[:, :, cut:-cut]
     # Low filter
     sos_lp = signal.butter(10, 90, 'lowpass', fs=fs, output='sos')
     # High filter
@@ -100,20 +100,25 @@ def MEMD_all_subjects(data, n_jobs=10):
 
 
 if __name__ == "__main__":
-
-    path = "../data/eeg_data"
-    save_path = "../data/imfs_MEMD/"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_folder', type=str)
+    parser.add_argument('output_folder', type=str)
+    parser.add_argument("-c", "--cut", type=int, default=500)
+    args = parser.parse_args()
+    print(args.cut)
+    path = args.input_folder
+    save_path = args.output_folder
 
     files = [x for x in os.listdir(path) if x.endswith(".npy")]
     bar = tqdm(files)
     for filename in bar:
         name = filename[4:-4]
         filepath = os.path.join(path, filename)
-        if os.path.isfile(os.path.join(save_path, name + ".npy")): 
-                continue
+        if os.path.isfile(os.path.join(save_path, name + ".npy")):
+            continue
         data = np.load(filepath)
         bar.set_description(name + " Preprocessing data")
-        data = preprocessing(data)
+        data = preprocessing(data, cut=args.cut)
 
         # EMD
         # IMFs = EMD_decomposition(data, name)
