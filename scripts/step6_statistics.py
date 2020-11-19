@@ -34,7 +34,7 @@ def load_subgroup(path, stimulus=2, group='C'):
         data[i] = np.load(os.path.join(path, fil))
     return data
 
-datos_ctl = load_subgroup(descriptor_path, group='C')
+datos_ctl = load_subgroup(descriptor_path, stimulus=8, group='C')
 
 datos_dlx = load_subgroup(descriptor_path, group='RD')
 
@@ -66,9 +66,11 @@ def plot_band_connectivity(PACband, bands, thr=None, ch=1, fusion=False):
     fig.colorbar(im, ax=ax[:, :], shrink=0.6)
     return fig
 
-plot_band_connectivity(np.nanmean(datos_ctl,axis=0), bands, ch=1, thr=0.6, fusion=True)
+plot_band_connectivity(np.nanmean(datos_ctl,axis=0), bands, ch=0)#, thr=0.8, fusion=True)
 plot_band_connectivity(np.nanmean(datos_dlx,axis=0), bands, ch=1, thr=0.6, fusion=True)
 
+plot_band_connectivity(datos_ctl[1], bands, ch=1, thr=.95, fusion=True)
+plot_band_connectivity(np.nanmean(datos_ctl, axis=0), bands, ch=0)
 
 datos_avg = np.nanmean(datos_ctl,axis=0)
 datos_std = np.nanstd(datos_ctl, axis=0)

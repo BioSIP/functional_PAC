@@ -1,6 +1,7 @@
 import numpy as np
 import visbrain as vs
 import os
+import re
 
 import matplotlib.pyplot as plt
 
@@ -16,7 +17,7 @@ channel_n = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'F
                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
                   'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
 
-descriptor_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors'
+descriptor_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/descriptors_sum_sort'
 
 def plot_band_connectivity(PACband, bands, thr=None, ch=1):
     nx, ny = PACband.shape[2:4]
@@ -74,13 +75,25 @@ subject_id=1
 
 filenames = [fi for fi in os.listdir(descriptor_path) if fi.endswith('npy')]
 
-filename = filenames[7]
+filename = filenames[0]
     
 # plt.imshow(PACband[...,4,4,0])
-plot_band_connectivity(PACband, bands, ch=0, thr=0.95)
-for filename in filenames:
-    PACband = np.load(os.path.join(descriptor_path, filename))
-    print(f'for {filename}, total : {(PACband[...,1]>0).sum()}')
+# plot_band_connectivity(PACband, bands, ch=0, thr=0.95)
+# for filename in filenames:
+#     PACband = np.load(os.path.join(descriptor_path, filename))
+#     print(f'for {filename}, total : {(PACband[...,1]>0).sum()}')
+
+def load_subgroup(path, stimulus=2, group='C'):
+    filenames = [fi for fi in os.listdir(descriptor_path) if fi.endswith('npy')]
+    r = re.compile(f'\d*_7_{stimulus}_{group}_band.npy')
+    filenames_r = list(filter(r.match, filenames))
+    N = len(filenames_r)
+    data = np.zeros((N, len(channel_n), len(channel_n), len(bands), len(bands), 2))
+    for i,fil in enumerate(filenames_r):
+        data[i] = np.load(os.path.join(path, fil))
+    return data
+
+datos_ctl = load_subgroup(descriptor_path, group='C')
 
 # plot_band_multicolor(PACband, bands, thr=0.95)
 
@@ -132,13 +145,13 @@ def plot_visbrain_connectivity(PACband, subject_id):
             cb_obj = ColorbarObj(t_obj, cblabel='MVL pac measure', **kw_cbar)
             connect = PACband[...,bx,by,1]
             np.fill_diagonal(connect, 0)
-            select = connect > 0.94
+            select = connect > 0.75
             if np.any(select):
-                t_obj.connect(correlation_matrix, select = select, cmap='inferno', antialias=True,line_width=4.)
+                t_obj.connect(correlation_matrix, select = select, cmap='inferno', antialias=True,line_width=4., dynamic=(0,1))
             sc.add_to_subplot(t_obj, row=by, col=bx*2, title=f'Phase:{list(bands.keys())[bx]} to Amp:{list(bands.keys())[by]}',
                             title_color='black', width_max=400)
             sc.add_to_subplot(cb_obj, row=by, col=bx*2+1, width_max=100)
     sc.link(-1)
     sc.screenshot(f'connect_subject_{subject_id}.eps', print_size=(30,15))
 
-plot_visbrain_connectivity(PACband, subject_id)
+plot_visbrain_connectivity(np.nanmean(datos_ctl,axis=0), subject_id)
