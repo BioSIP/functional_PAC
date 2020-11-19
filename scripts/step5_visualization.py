@@ -116,7 +116,7 @@ class customConnectObject(ConnectObj):
                  antialias=False, dynamic=None, dynamic_order=1,
                  dynamic_orientation='ascending', cmap='viridis', clim=None,
                  vmin=None, vmax=None, under='gray', over='red',
-                 transform=None, parent=None, verbose=None, _z=-10., **kw):
+                 transform=None, parent=None, verbose=None, _z=-10., arrow_size=2., arrow_type="triangle_30", **kw):
         """Init."""
         VisbrainObject.__init__(self, name, parent, transform, verbose, **kw)
         self._update_cbar_args(cmap, clim, vmin, vmax, under, over)
@@ -167,7 +167,7 @@ class customConnectObject(ConnectObj):
         #                              connect='segments')
         self._connect = visuals.Arrow(name='ConnectObjLine', width=line_width,
                                       antialias=antialias, parent=self._node,
-                                      connect='segments', arrow_type="triangle_30", arrow_size=3.)
+                                      connect='segments', arrow_type=arrow_type, arrow_size=arrow_size)
         self._connect.set_gl_state('translucent', depth_test=False,
                                    cull_face=False)
         self._build_line()
@@ -253,8 +253,8 @@ def plot_visbrain_connectivity(PACband, path):
             select = connect > 0.94
             if np.any(select):
                 t_obj._connect = customConnectObject('ChanConnect', t_obj._xyz, correlation_matrix, select=select,
-                                                     cmap='inferno', antialias=True, line_width=4.,
-                                                     parent=t_obj.node_chan)
+                                                     cmap='inferno', antialias=True, line_width=2., arrow_size=5.,
+                                                     parent=t_obj.node_chan, arrow_type="triangle_90")
                 # t_obj.connect(correlation_matrix, select=select, cmap='inferno', antialias=True, line_width=4.)
             sc.add_to_subplot(t_obj, row=by, col=bx * 2,
                               title=f'Phase:{list(bands.keys())[bx]} to Amp:{list(bands.keys())[by]}',
