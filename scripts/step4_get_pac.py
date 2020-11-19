@@ -133,7 +133,6 @@ if __name__ == "__main__":
         data = np.load(os.path.join(hilbert_transform_path, filename), allow_pickle=True)
         hilbert_t = data['hilbert']
         ce = data['ces']
-        print(hilbert_t.shape)
         del data
         channels_combinations = list(permutations(range(hilbert_t.shape[1]), 2))
         channels_combinations += [(i, i) for i in range(hilbert_t.shape[1])]
@@ -154,7 +153,7 @@ if __name__ == "__main__":
             # PACs = {}  # Dictionary: keys -> (channel_x, channel_y), values -> pac matrix
 
             parallel_pacs = Parallel(n_jobs=args.jobs_number, prefer="threads", verbose=5)(
-                delayed(get_pac_par)(x, y, hilbert_t[id_subject], ce[id_subject], numsurrogate=10)
+                delayed(get_pac_par)(x, y, hilbert_t[id_subject], ce[id_subject], numsurrogate=1000)
                 for x, y in list(channels_combinations)
             )
 

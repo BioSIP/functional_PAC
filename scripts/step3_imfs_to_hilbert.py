@@ -57,7 +57,7 @@ def purge_IMF(subject_original_imfs, subject_htt, sum_imf, purge_freq=.5, ):
         purged_imfs = np.zeros((len(bands),) + subject_original_imfs.shape[1:])
         for i, band in enumerate(bands):
             select = (subject_freqs >= bands[band][0]) & (subject_freqs < bands[band][1])
-            purged_imfs[i] = subject_original_imfs[select].sum(axis=0)
+            purged_imfs[i] = subject_original_imfs[select.all(axis=1)].sum(axis=0)
         purged_norm_hilbert = normalize_and_hilbert(purged_imfs)
 
     else:
