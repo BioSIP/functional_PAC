@@ -161,6 +161,7 @@ class customConnectObject(ConnectObj):
         self._alpha = alpha
 
         # _______________________ LINE _______________________
+        ###### CHANGE FROM ORIGINAL #######
         # self._connect = visuals.Line(name='ConnectObjLine', width=line_width,
         #                              antialias=antialias, parent=self._node,
         #                              connect='segments')
@@ -229,10 +230,11 @@ class customConnectObject(ConnectObj):
                                             orientation=self._dyn_orient)
 
         # Send data to the connectivity object :
+        ###### CHANGE FROM ORIGINAL #######
         arrow_pos = line_pos.reshape(-1, line_pos.shape[-1] * 2)
-        print(arrow_pos.shape, color.shape, line_pos.shape)
         self._connect.set_data(pos=line_pos, color=color, arrows=arrow_pos)
         self._connect.arrow_color = color[::2]
+
 
 def plot_visbrain_connectivity(PACband, path):
     kw_top = dict(margin=15 / 100, chan_offset=(0., 0.1, 0.), chan_size=10)
