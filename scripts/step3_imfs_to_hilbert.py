@@ -57,7 +57,7 @@ def purge_IMF(subject_original_imfs, subject_htt, sum_imf, purge_freq=.5, ):
         purged_imfs = np.zeros((len(bands),) + subject_original_imfs.shape[1:])
         for i, band in enumerate(bands):
             select = (subject_freqs >= bands[band][0]) & (subject_freqs < bands[band][1])
-            purged_imfs[i] = subject_original_imfs[select].sum(axis=0)
+            purged_imfs[i] = subject_original_imfs[select.all(axis=1)].sum(axis=0)
         purged_norm_hilbert = normalize_and_hilbert(purged_imfs)
 
     else:
@@ -105,6 +105,7 @@ if __name__ == "__main__":
     parser.add_argument('input_folder', type=str)
     parser.add_argument('output_folder', type=str)
     parser.add_argument("-s", "--sum_imfs", action="store_true")
+    parser.add_argument("-j", "--jobs_number", type=int, default=10)
     args = parser.parse_args()
 
     imfs_path = args.input_folder
@@ -128,7 +129,7 @@ if __name__ == "__main__":
         # # Test
         # all_subject_imfs = np.load(os.path.join(imfs_path, "test_imfs.npy")).astype(np.float32)
 
-        with Parallel(n_jobs=10, prefer="threads", verbose=20) as parallel:
+        with Parallel(n_jobs=args.jobs_number, prefer="threads", verbose=20) as parallel:
             # Normalize and hilbert
             hilbert_norm = parallel(
                 delayed(normalize_and_hilbert)(all_subject_imfs[k]) for k in range(all_subject_imfs.shape[0]))
