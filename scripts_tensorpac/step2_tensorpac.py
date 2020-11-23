@@ -108,9 +108,9 @@ if __name__ == "__main__":
                 phases = np.zeros((n_chan, size_pha, 1, n_times))
                 amplitudes = np.zeros((n_chan, size_amp, 1, n_times))
                 for chan in range(n_chan):
-                    phases[chan] = p.filter(sf, data[subject_id, np.newaxis, chan], ftype='phase', edges=cut,
+                    phases[chan] = p.filter(sf, data[subject_id, np.newaxis, chan], ftype='phase',
                                             n_jobs=n_jobs)
-                    amplitudes[chan] = p.filter(sf, data[subject_id, np.newaxis, chan], ftype='amplitude', edges=cut,
+                    amplitudes[chan] = p.filter(sf, data[subject_id, np.newaxis, chan], ftype='amplitude',
                                                 n_jobs=n_jobs)
 
                 subject_pac = np.zeros((n_chan, n_chan, size_amp, size_pha))
