@@ -42,7 +42,6 @@ def preprocessing(data, ref_channel=31, fs=500, cut=500):
 f_pha = 10      # frequency phase for the coupling
 f_amp = 100     # frequency amplitude for the coupling
 n_epochs = 20   # number of trials
-sf = 500.       # sampling frequency
 batches = False # whether to use batches (TODO)
 n_perms = 200   # number of permutations
 
@@ -95,8 +94,8 @@ if __name__ == "__main__":
                 phases = np.zeros((n_chan, size_pha, 1, n_times))
                 amplitudes = np.zeros((n_chan, size_amp, 1, n_times))
                 for chan in range(n_chan):
-                    phases[chan] = p.filter(sf, data[subject_id, np.newaxis,chan], ftype='phase', n_jobs=n_jobs)
-                    amplitudes[chan] = p.filter(sf, data[subject_id, np.newaxis,chan], ftype='amplitude', n_jobs=n_jobs)
+                    phases[chan] = p.filter(fs, data[subject_id, np.newaxis,chan], ftype='phase', edges=fs, n_jobs=n_jobs)
+                    amplitudes[chan] = p.filter(fs, data[subject_id, np.newaxis,chan], ftype='amplitude', edges=fs, n_jobs=n_jobs)
 
                 subject_pac = np.zeros((n_chan, n_chan, size_amp, size_pha))
                 for comb in channels_combinations:
@@ -109,6 +108,6 @@ if __name__ == "__main__":
 
 
 # %%
-amplitudes.shape
-subject_id = 0
-data = np.load('/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/eeg_data/EEG_7_2_C.npy')
+# amplitudes.shape
+# subject_id = 0
+# data = np.load('/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/eeg_data/EEG_7_2_C.npy')
