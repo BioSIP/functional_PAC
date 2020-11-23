@@ -114,10 +114,10 @@ if __name__ == "__main__":
                                                 n_jobs=n_jobs)
 
                 subject_pac = np.zeros((n_chan, n_chan, size_amp, size_pha))
-                for comb in channels_combinations:
+                for comb in tqdm(channels_combinations):
                     p.idpac = (1, 2, 4)  # for MVL with surrogate.
                     # compute only the pac without filtering
-                    xpac = p.fit(phases[comb[0]], amplitudes[comb[1]], n_perm=n_perms)
+                    xpac = p.fit(phases[comb[0]], amplitudes[comb[1]], n_perm=n_perms, verbose="WARNING")
                     subject_pac[comb[0], comb[1]] = xpac.mean(-1)
 
             np.save(os.path.join(save_path, f'{subject_id}_{name}.npy'), subject_pac)
