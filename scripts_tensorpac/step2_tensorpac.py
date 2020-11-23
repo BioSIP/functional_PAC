@@ -15,10 +15,14 @@ def preprocessing(data, ref_channel=31, fs=500, cut=500, normalization=True, fil
         data (numpy.ndarray): data with shape (subjects, channels, samples)
         ref_channel (int, optional): Channel to be used as reference. Defaults to 31.
         fs (int, optional): Sampling frequency. Defaults to 500.
+        cut(int, optional): Cut the EEG edges. Defaults to 500.
+        normalization(bool, optional): Whether to normalize EEG. Defaults to True.
+        filter(bool, optional): Whether to filter EEG. Defaults to True.
 
     Returns:
         [type]: data with shape (subjects, channels-1, samples)
     """
+
     batch_data = data.copy()
     batch_data = batch_data[:, :, cut:-cut]
     # Low filter
