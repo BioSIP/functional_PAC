@@ -8,7 +8,7 @@ from itertools import permutations
 from scipy import signal
 
 
-def preprocessing(data, ref_channel=31, fs=500, cut=500):
+def preprocessing(data, ref_channel=31, fs=500, cut=500, normalization=True, filter=True):
     """Signal preprocessing
 
     Args:
@@ -31,31 +31,37 @@ def preprocessing(data, ref_channel=31, fs=500, cut=500):
             # Reference channel substraction
             batch_data[subject, channel, :] = batch_data[subject, channel, :] - batch_data[subject, ref_channel, :]
             # Normalization
-            batch_data[subject, channel, :] = batch_data[subject, channel, :] - (
-                    np.mean(batch_data[subject, channel, :]) / np.std(batch_data[subject, channel, :]))
+            if normalization:
+                batch_data[subject, channel, :] = batch_data[subject, channel, :] - (
+                        np.mean(batch_data[subject, channel, :]) / np.std(batch_data[subject, channel, :]))
             # Filtering
-            batch_data[subject, channel, :] = signal.sosfilt(sos_lp, batch_data[subject, channel, :])
-            batch_data[subject, channel, :] = signal.sosfilt(sos_hp, batch_data[subject, channel, :])
+            if filter:
+                batch_data[subject, channel, :] = signal.sosfilt(sos_lp, batch_data[subject, channel, :])
+                batch_data[subject, channel, :] = signal.sosfilt(sos_hp, batch_data[subject, channel, :])
     return batch_data[:, :ref_channel, :]
 
-    
-f_pha = 10      # frequency phase for the coupling
-f_amp = 100     # frequency amplitude for the coupling
-n_epochs = 20   # number of trials
-batches = False # whether to use batches (TODO)
-n_perms = 200   # number of permutations
+
+f_pha = 10  # frequency phase for the coupling
+f_amp = 100  # frequency amplitude for the coupling
+n_epochs = 20  # number of trials
+batches = False  # whether to use batches (TODO)
+n_perms = 200  # number of permutations
+sf = 500
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('input_folder', type=str)
     parser.add_argument('output_folder', type=str)
-    parser.add_argument('f_init', type=int, default=15)
-    parser.add_argument('f_end', type=int, default=120)
-    parser.add_argument('f_res', type=int, default=2)
+    parser.add_argument('--f_init', type=int, default=15)
+    parser.add_argument('--f_end', type=int, default=120)
+    parser.add_argument('--f_res', type=int, default=2)
     parser.add_argument("-c", "--cut", type=int, default=500)
     parser.add_argument("-j", "--jobs_number", type=int, default=10)
+    parser.add_argument("-n", "--normalization", action="store_true", help="Normalize EEG")
+    parser.add_argument("-f", "--filter", action="store_true", help="Filter EEG")
+    parser.add_argument("-r", "--reverse", action="store_true", help="Whether to reverse files order")
     args = parser.parse_args()
-    print(args.cut)
+    print(args)
     path = args.input_folder
     save_path = args.output_folder
 
@@ -63,20 +69,19 @@ if __name__ == "__main__":
     f_end = args.f_end
     f_res = args.f_res
     n_jobs = args.jobs_number
-    fs = args.cut
+    cut = args.cut
     p = Pac(f_pha='hres', f_amp=(f_init, f_end, f_res, f_res), dcomplex='hilbert')
 
     files = [x for x in os.listdir(path) if x.endswith(".npy")]
+    if args.reverse:
+        files.reverse()
     bar = tqdm(files)
     for filename in bar:
-        name = filename[4:-4]
         filepath = os.path.join(path, filename)
-        if os.path.isfile(os.path.join(save_path, name + ".npy")):
-            continue
         data = np.load(filepath)
-        bar.set_description(name + " Preprocessing data")
+        bar.set_description(filename + " Preprocessing data")
         # Quiza ni haga falta el preprocessing, si lugo vamos a filtrar. 
-        data = preprocessing(data, cut=fs)
+        data = preprocessing(data, cut=cut, normalization=args.normalization, filter=args.filter)
 
         n_subj, n_chan, n_times = data.shape
 
@@ -84,29 +89,39 @@ if __name__ == "__main__":
         channels_combinations += [(i, i) for i in range(n_chan)]
 
         for subject_id in range(n_subj):
+            name = filename[4:-4]
+            if os.path.isfile(os.path.join(save_path, f'{subject_id}_{name}.npy')):
+                continue
+            lock_filename_path = os.path.join(save_path, f'{subject_id}_{name}.npy.lock')
+            if os.path.isfile(lock_filename_path):
+                continue
+            with open(lock_filename_path, 'w') as fp:
+                pass
             bar.set_description(f'Subject {subject_id} PAC')
-            # tamaños: 
-            size_pha, size_amp = 50, len(np.arange(f_init, f_end, f_res))-1 
+
+            # tamaños:
+            size_pha, size_amp = 50, len(np.arange(f_init, f_end, f_res)) - 1
 
             if batches:
-                pass #TODO
+                pass  # TODO
             else:
                 phases = np.zeros((n_chan, size_pha, 1, n_times))
                 amplitudes = np.zeros((n_chan, size_amp, 1, n_times))
                 for chan in range(n_chan):
-                    phases[chan] = p.filter(fs, data[subject_id, np.newaxis,chan], ftype='phase', edges=fs, n_jobs=n_jobs)
-                    amplitudes[chan] = p.filter(fs, data[subject_id, np.newaxis,chan], ftype='amplitude', edges=fs, n_jobs=n_jobs)
+                    phases[chan] = p.filter(sf, data[subject_id, np.newaxis, chan], ftype='phase', edges=cut,
+                                            n_jobs=n_jobs)
+                    amplitudes[chan] = p.filter(sf, data[subject_id, np.newaxis, chan], ftype='amplitude', edges=cut,
+                                                n_jobs=n_jobs)
 
                 subject_pac = np.zeros((n_chan, n_chan, size_amp, size_pha))
                 for comb in channels_combinations:
-                    p.idpac = (1, 2, 4) # for MVL with surrogate. 
+                    p.idpac = (1, 2, 4)  # for MVL with surrogate.
                     # compute only the pac without filtering
                     xpac = p.fit(phases[comb[0]], amplitudes[comb[1]], n_perm=n_perms)
                     subject_pac[comb[0], comb[1]] = xpac.mean(-1)
 
             np.save(save_path + f'{subject_id}_{name}.npy', subject_pac)
-
-
+            os.remove(lock_filename_path)
 # %%
 # amplitudes.shape
 # subject_id = 0
