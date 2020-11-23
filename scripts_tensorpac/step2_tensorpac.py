@@ -120,7 +120,7 @@ if __name__ == "__main__":
                     xpac = p.fit(phases[comb[0]], amplitudes[comb[1]], n_perm=n_perms)
                     subject_pac[comb[0], comb[1]] = xpac.mean(-1)
 
-            np.save(save_path + f'{subject_id}_{name}.npy', subject_pac)
+            np.save(os.path.join(save_path, f'{subject_id}_{name}.npy'), subject_pac)
             os.remove(lock_filename_path)
 # %%
 # amplitudes.shape
