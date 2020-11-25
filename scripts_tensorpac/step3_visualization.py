@@ -43,7 +43,7 @@ plot_connect_hipermatrix(data_subject, p)
 
 def plot_avg_connectivity(hipermatriz):
     fig, ax  = plt.subplots(figsize=(7,7))
-    ax.matshow(data_subject.mean(axis=-1).mean(axis=-1))
+    ax.matshow(hipermatriz.mean(axis=-1).mean(axis=-1))
     ax.set_yticks(range(31))
     ax.set_xticks(range(31))
     ax.set_yticklabels(channel_n)
