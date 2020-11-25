@@ -22,7 +22,7 @@ data_subject = np.load(os.path.join(pac_path, filename))
 
 def plot_connect_hipermatrix(hipermatriz, p):
     fig, ax = plt.subplots(31, 31, figsize=(40,40))
-    n_chan, _ , size_amp, size_pha = hipermatriz.shape
+    n_chan, _ , _, _ = hipermatriz.shape
     for i in range(n_chan):
         for j in range(n_chan):
             plt.sca(ax[i,j])
