@@ -40,8 +40,16 @@ datos_ctl = load_subgroup(descriptor_path, group='C', stimulus=2)
 datos_dlx = load_subgroup(descriptor_path, group='RD', stimulus=20)
 
 
+def plot_specific(hipermatriz, ch_x, ch_y):
+    _, ax  = plt.subplots(figsize=(5,4))
+    f = ax.imshow(hipermatriz[ch_x,ch_y], extent=[2, 20,15, 120], aspect='auto')
+    ax.set_title(f'Channels {ch_x}, {ch_y}')
+    ax.set_xlabel('Frequency for Phase (Hz)')
+    ax.set_ylabel('Frequency for Amplitude (Hz)')
+    plt.colorbar(f)
 
-from scipy.stats import ttest_ind
+
+from scipy.stats import ttest_ind, mannwhitneyu
 from scipy.ndimage import label
 
 class ClusterBasedPermutationTesting(object):
@@ -81,7 +89,7 @@ class ClusterBasedPermutationTesting(object):
         bin_stat = (stat < th_l) | (stat > th_u)
         # label connected clusters
         label_arr = np.zeros(bin_stat.shape)
-        pval_arr = np.zeros(bin_stat.shape)
+        pval_arr = np.empty(bin_stat.shape)*np.nan
         for ch_x in range(label_arr.shape[0]):
             for ch_y in range(label_arr.shape[1]):
                 arr, n_labs = label(bin_stat[ch_x, ch_y])
@@ -95,6 +103,7 @@ class ClusterBasedPermutationTesting(object):
                         # save regions:
                         cluster_lab = np.zeros(arr.shape)
                         cluster_lab[arr==ix] = ix
+                        pval_arr[ch_x, ch_y][arr==ix] = 0
                         label_arr[ch_x, ch_y] += cluster_lab
                         # compute cluster-based statistic: 
                         cluster_stat = stat[ch_x, ch_y][arr==ix].sum()
@@ -103,9 +112,15 @@ class ClusterBasedPermutationTesting(object):
                             stat_surr, _ = self.test(X[y_surr==0,ch_x,ch_y], 
                                                     X[y_surr==1,ch_x,ch_y])
                             cs_surr = stat_surr[arr==ix].sum()
-                            if cs_surr>cluster_stat:
-                                pval_arr[ch_x, ch_y][arr==ix] += 1
-                            
+                            if cluster_stat<0 and self.twosided:
+                                if cs_surr<cluster_stat:
+                                    pval_arr[ch_x, ch_y][arr==ix] += 1
+                            else:
+                                if cs_surr>cluster_stat:
+                                    pval_arr[ch_x, ch_y][arr==ix] += 1
+                        if cluster_stat<0 and self.twosided:
+                            pval_arr[ch_x,ch_y][arr==ix] *= np.sign(cluster_stat) 
+
         pval_arr = pval_arr/self.n_iter
         return pval_arr 
 
@@ -114,40 +129,76 @@ X = np.r_[datos_ctl, datos_dlx]
 y = np.r_[np.ones(datos_ctl.shape[0]), np.zeros(datos_dlx.shape[0])]
 
 #%% 
-cbpt = ClusterBasedPermutationTesting(twosided=True)
+cbpt = ClusterBasedPermutationTesting(twosided=True, cluster_threshold = 20, 
+                test=ttest_ind)
 pval = cbpt.fit(X,y)
 #%%
+test = ttest_ind
+n_iter=5000
+twosided=True
+significance =0.05
+cluster_threshold=20
+
+stat, _ = test(X[y==0], X[y==1])
+if twosided:
+    th = significance/2
+    th_l, th_u = np.quantile(stat, th), np.quantile(stat, 1-th)
+else: 
+    th_l, th_u = -np.inf, np.quantile(stat, 1-significance)
+
+bin_stat = (stat < th_l) | (stat > th_u)
 label_arr = np.zeros(bin_stat.shape)
-pval_arr = np.zeros(bin_stat.shape)
-n_iter=1000
+pval_arr = np.zeros(bin_stat.shape)*np.nan
 
-
-ch_x, ch_y = 0, 7
+ch_x, ch_y = 30,2
 arr, n_labs = label(bin_stat[ch_x, ch_y])
 # count elements per cluster
 count, idx = np.histogram(arr.flatten(), bins=n_labs+1)
 idx = idx.astype(int)[:-1] 
 # keep only supra-threshold clusters: 
-idx_sel = idx[count>20]+1
-plt.imshow(arr)
-# %%
+idx_sel = idx[count>cluster_threshold]+1
+
 if len(idx_sel>1):
     for ix in idx_sel[1:]:
         # save regions:
         cluster_lab = np.zeros(arr.shape)
         cluster_lab[arr==ix] = ix
+        pval_arr[ch_x,ch_y][arr==ix] = 0
         label_arr[ch_x, ch_y] += cluster_lab
         # compute cluster-based statistic: 
         cluster_stat = stat[ch_x, ch_y][arr==ix].sum()
+        print(cluster_stat)
         for _ in range(n_iter):
             y_surr = np.random.permutation(y)
             stat_surr, _ = ttest_ind(X[y_surr==0,ch_x,ch_y], 
                                     X[y_surr==1,ch_x,ch_y])
             cs_surr = stat_surr[arr==ix].sum()
-            if cs_surr>cluster_stat:
-                pval_arr[ch_x, ch_y][arr==ix] += 1
+            if cluster_stat<0 and twosided:
+                if cs_surr<cluster_stat:
+                    pval_arr[ch_x, ch_y][arr==ix] += 1
+            else:
+                if cs_surr>cluster_stat:
+                    pval_arr[ch_x, ch_y][arr==ix] += 1
+
+
+plot_specific(bin_stat*np.sign(stat), ch_x, ch_y)
+cosa = pval_arr/n_iter
+plot_specific(cosa, ch_x, ch_y)
+
+
 # %%
 ch_x,ch_y = 30,23
 plt.imshow(pval[ch_x, ch_y])
 plt.colorbar()
 # %%
+def plot_avg_connectivity(hipermatriz):
+    _, ax  = plt.subplots(figsize=(7,7))
+    ax.matshow((hipermatriz>0).mean(axis=-1).mean(axis=-1))
+    ax.set_yticks(range(31))
+    ax.set_xticks(range(31))
+    ax.set_yticklabels(channel_n)
+    ax.set_xticklabels(channel_n,rotation=60)
+
+plot_avg_connectivity(pval)
+
+#%%
