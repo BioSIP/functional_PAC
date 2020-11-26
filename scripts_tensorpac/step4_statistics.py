@@ -112,16 +112,17 @@ class ClusterBasedPermutationTesting(object):
                             stat_surr, _ = self.test(X[y_surr==0,ch_x,ch_y], 
                                                     X[y_surr==1,ch_x,ch_y])
                             cs_surr = stat_surr[arr==ix].sum()
-                            if cluster_stat<0 and self.twosided:
-                                if cs_surr<cluster_stat:
-                                    pval_arr[ch_x, ch_y][arr==ix] += 1
-                            else:
-                                if cs_surr>cluster_stat:
-                                    pval_arr[ch_x, ch_y][arr==ix] += 1
-                        if cluster_stat<0 and self.twosided:
-                            pval_arr[ch_x,ch_y][arr==ix] *= np.sign(cluster_stat) 
-
+                            # Compute quantile. 
+                            if cluster_stat > cs_surr:
+                                pval_arr[ch_x, ch_y][arr==ix] += 1
         pval_arr = pval_arr/self.n_iter
+        if self.twosided: 
+            pval_arr[(pval_arr>=th)&(pval_arr<=1-th)] = np.nan
+            pval_arr[pval_arr<th] = -pval_arr[pval_arr<th]
+            pval_arr[pval_arr>1-th] = 1-pval_arr[pval_arr>1-th]
+        else:
+            pval_arr[pval_arr<1-th] = np.nan
+            pval_arr[pval_arr>1-th] = 1-pval_arr[pval_arr>1-th]
         return pval_arr 
 
 #%% 
@@ -129,9 +130,9 @@ X = np.r_[datos_ctl, datos_dlx]
 y = np.r_[np.ones(datos_ctl.shape[0]), np.zeros(datos_dlx.shape[0])]
 
 #%% 
-cbpt = ClusterBasedPermutationTesting(twosided=True, cluster_threshold = 20, 
-                test=ttest_ind)
-pval = cbpt.fit(X,y)
+cbpt = ClusterBasedPermutationTesting(n_iter=1000, twosided=True, 
+                cluster_threshold = 10, test=mannwhitneyu)
+pvalu = cbpt.fit(X,y)
 #%%
 test = ttest_ind
 n_iter=5000
@@ -150,7 +151,7 @@ bin_stat = (stat < th_l) | (stat > th_u)
 label_arr = np.zeros(bin_stat.shape)
 pval_arr = np.zeros(bin_stat.shape)*np.nan
 
-ch_x, ch_y = 30,2
+ch_x, ch_y = 28,3
 arr, n_labs = label(bin_stat[ch_x, ch_y])
 # count elements per cluster
 count, idx = np.histogram(arr.flatten(), bins=n_labs+1)
@@ -173,12 +174,9 @@ if len(idx_sel>1):
             stat_surr, _ = ttest_ind(X[y_surr==0,ch_x,ch_y], 
                                     X[y_surr==1,ch_x,ch_y])
             cs_surr = stat_surr[arr==ix].sum()
-            if cluster_stat<0 and twosided:
-                if cs_surr<cluster_stat:
-                    pval_arr[ch_x, ch_y][arr==ix] += 1
-            else:
-                if cs_surr>cluster_stat:
-                    pval_arr[ch_x, ch_y][arr==ix] += 1
+            # Compute quantile. 
+            if cluster_stat > cs_surr:
+                pval_arr[ch_x, ch_y][arr==ix] += 1
 
 
 plot_specific(bin_stat*np.sign(stat), ch_x, ch_y)
@@ -193,12 +191,21 @@ plt.colorbar()
 # %%
 def plot_avg_connectivity(hipermatriz):
     _, ax  = plt.subplots(figsize=(7,7))
-    ax.matshow((hipermatriz>0).mean(axis=-1).mean(axis=-1))
+    if np.nanmin(hipermatriz)<0:
+        vmax = np.nanmax(abs(hipermatriz))
+        vmin = -vmax
+        colormap = 'coolwarm'
+    else:
+        vmin, vmax = 0, np.nanmax(hipermatriz)
+        colormap = 'inferno'
+    val = np.nanmean(np.nanmean(hipermatriz, axis=-1), axis=-1)
+    f = ax.matshow(val, vmin=vmin, vmax=vmax, cmap= colormap)
     ax.set_yticks(range(31))
     ax.set_xticks(range(31))
     ax.set_yticklabels(channel_n)
     ax.set_xticklabels(channel_n,rotation=60)
+    plt.colorbar(f)
 
-plot_avg_connectivity(pval)
+plot_avg_connectivity((1-abs(pval))*np.sign(pval))
 
 #%%
