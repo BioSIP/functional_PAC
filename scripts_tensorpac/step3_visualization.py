@@ -2,6 +2,7 @@ from tensorpac import Pac
 import numpy as np
 import os
 import matplotlib.pyplot as plt 
+from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 
 f_init = 15
 f_end = 120
@@ -20,25 +21,36 @@ p = Pac(f_pha='hres', f_amp=(f_init, f_end, f_res, f_res), dcomplex='hilbert')
 
 data_subject = np.load(os.path.join(pac_path, filename))
 
-def plot_connect_hipermatrix(hipermatriz, p):
-    fig, ax = plt.subplots(31, 31, figsize=(40,40))
+def plot_connect_hipermatrix(hipermatriz, f_pha, f_amp, filename):
     n_chan, _ , _, _ = hipermatriz.shape
+    fig, ax = plt.subplots(n_chan, n_chan, figsize=(n_chan*1.5,n_chan*1.5))
+    vmin, vmax = np.nanmin(hipermatriz), np.nanmax(hipermatriz)
+    colormap='inferno'
+    if vmin<0:
+        vmax = max(-vmin, vmax)
+        vmin = -vmax
+        colormap = nilearn_cmaps['cold_hot']
     for i in range(n_chan):
         for j in range(n_chan):
-            plt.sca(ax[i,j])
-            title = p.method.replace(' (', f' ({i})\n(')
-            title += 'channels ({i}, {j})'
-            p.comodulogram(hipermatriz[i,j], title=title, cmap='inferno')
-            if i==0:
+            matris = hipermatriz[i,j]
+            matris[np.isnan(matris)] = 0.
+            ax[i,j].imshow(matris, cmap=colormap, origin='lower',
+                            vmin=vmin, vmax=vmax, aspect='auto',
+                            extent=[f_pha[0], f_pha[1], f_amp[0], f_amp[1]])
+            if i==(n_chan-1):
                 ax[i,j].set_xlabel(channel_n[j])
+            else:
+                ax[i,j].set_xticklabels([])
             if j==0:
                 ax[i,j].set_ylabel(channel_n[i])
-    plt.tight_layout()
+            else:
+                ax[i,j].set_yticklabels([])
+    #plt.tight_layout()
     plt.show()
     fig.savefig(f'{filename}.pdf')
 
 
-plot_connect_hipermatrix(data_subject, p)
+plot_connect_hipermatrix(data_subject, (2, 20), (f_init, f_end), filename)
 
 
 def plot_avg_connectivity(hipermatriz):
