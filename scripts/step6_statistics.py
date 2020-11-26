@@ -34,9 +34,9 @@ def load_subgroup(path, stimulus=2, group='C'):
         data[i] = np.load(os.path.join(path, fil))
     return data
 
-datos_ctl = load_subgroup(descriptor_path, group='C')
+datos_ctl = load_subgroup(descriptor_path, group='C', stimulus=2)
 
-datos_dlx = load_subgroup(descriptor_path, group='RD')
+datos_dlx = load_subgroup(descriptor_path, group='RD', stimulus=2)
 
 def plot_band_connectivity(PACband, bands, thr=None, ch=1, fusion=False):
     nx, ny = PACband.shape[2:4]
