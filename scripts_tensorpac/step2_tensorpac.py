@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     files = [x for x in os.listdir(path) if x.endswith(".npy")]
     if args.reverse:
-        files.reverse()
+        files.sort(key=lambda i: i.split("_")[3], reverse=True)
     bar = tqdm(files)
     for filename in bar:
         filepath = os.path.join(path, filename)
