@@ -79,7 +79,7 @@ class PermutationTesting(object):
         #     th_l, th_u = np.quantile(stat, th), np.quantile(stat, 1-th)
         # else: 
         #     th_l, th_u = -np.inf, np.quantile(stat, 1-self.alpha)
-        pval_arr = np.empty(stat.shape)*np.nan
+        pval_arr = np.zeros(stat.shape)
         # go channel per channel: 
         for ch_x in range(stat.shape[0]):
             for ch_y in range(stat.shape[1]):
@@ -100,7 +100,7 @@ class PermutationTesting(object):
 
 class ClusterBasedPermutationTesting(PermutationTesting):
 
-    def __init__(self, n_iter=200, significance = 0.05, cluster_threshold = 20, 
+    def __init__(self, n_iter=200, alpha = 0.05, cluster_threshold = 20, 
                 test=ttest_ind, twosided=False, n_jobs=10):
         PermutationTesting.__init__(self, n_iter, alpha, test, twosided, n_jobs)
         self.cluster_threshold = cluster_threshold
@@ -152,23 +152,24 @@ class ClusterBasedPermutationTesting(PermutationTesting):
                 if len(idx_sel>1):
                     for ix in idx_sel[1:]:
                         # save regions:
+                        select = arr==ix
                         cluster_lab = np.zeros(arr.shape)
-                        cluster_lab[arr==ix] = ix
-                        pval_arr[ch_x, ch_y][arr==ix] = 0
+                        cluster_lab[select] = ix
+                        pval_arr[ch_x, ch_y][select] = 0
                         label_arr[ch_x, ch_y] += cluster_lab
                         # compute cluster-based statistic: 
-                        cluster_stat = stat[ch_x, ch_y][arr==ix].sum()
+                        cluster_stat = stat[ch_x, ch_y][select].sum()
                         with Parallel(n_jobs=self.n_jobs, prefer="threads", verbose=20) as parallel:
                             parallel(
-                                delayed(self.permutation_testing)(X[:,ch_x,ch_y], y, cluster_stat, pval_arr[ch_x,ch_y], arr==ix) for i in range(self.n_iter))
+                                delayed(self.permutation_testing)(X[:,ch_x,ch_y], y, cluster_stat, pval_arr[ch_x,ch_y], select) for i in range(self.n_iter))
                         # for _ in range(self.n_iter):
                         #     y_surr = np.random.permutation(y)
                         #     stat_surr, _ = self.test(X[y_surr==0,ch_x,ch_y], 
                         #                             X[y_surr==1,ch_x,ch_y])
-                        #     cs_surr = stat_surr[arr==ix].sum()
+                        #     cs_surr = stat_surr[select].sum()
                         #     # Compute quantile. 
                         #     if cluster_stat > cs_surr:
-                        #         pval_arr[ch_x, ch_y][arr==ix] += 1
+                        #         pval_arr[ch_x, ch_y][select] += 1
         pval_arr = pval_arr/self.n_iter
         if self.twosided: 
             pval_arr[(pval_arr>=th)&(pval_arr<=1-th)] = np.nan
@@ -185,86 +186,133 @@ y = np.r_[np.ones(datos_ctl.shape[0]), np.zeros(datos_dlx.shape[0])]
 
 #%% 
 cbpt = ClusterBasedPermutationTesting(n_iter=1000, twosided=True, 
-                cluster_threshold = 10, test=ttest_ind, n_jobs=20)
+                cluster_threshold = 10, test=ttest_ind, n_jobs=25)
 pvalu = cbpt.fit(X,y)
-#%%
-test = ttest_ind
-n_iter=5000
-twosided=True
-significance =0.05
-cluster_threshold=20
+
+#%% 
 
 
-def permutation_testing(X,y, cluster_stat, arr, select, test):
-    y_surr = np.random.permutation(y)
-    stat_surr, _ = test(X[y_surr==0], 
-                            X[y_surr==1])
-    cs_surr = stat_surr[select].sum()
-    # Compute quantile. 
-    if cluster_stat > cs_surr:
-        arr[select] += 1
 
-stat, _ = test(X[y==0], X[y==1])
-if twosided:
-    th = significance/2
-    th_l, th_u = np.quantile(stat, th), np.quantile(stat, 1-th)
-else: 
-    th_l, th_u = -np.inf, np.quantile(stat, 1-significance)
-
-bin_stat = (stat < th_l) | (stat > th_u)
-label_arr = np.zeros(bin_stat.shape)
-pval_arr = np.zeros(bin_stat.shape)*np.nan
-
-ch_x, ch_y = 0,0
-arr, n_labs = label(bin_stat[ch_x, ch_y])
-# count elements per cluster
-count, idx = np.histogram(arr.flatten(), bins=n_labs+1)
-idx = idx.astype(int)[:-1] 
-# keep only supra-threshold clusters: 
-idx_sel = idx[count>cluster_threshold]+1
-print(idx_sel)
-if len(idx_sel>1):
-    for ix in idx_sel[1:]:
-        # save regions:
-        cluster_lab = np.zeros(arr.shape)
-        cluster_lab[arr==ix] = ix
-        pval_arr[ch_x,ch_y][arr==ix] = 0
-        label_arr[ch_x, ch_y] += cluster_lab
-        # compute cluster-based statistic: 
-        cluster_stat = stat[ch_x, ch_y][arr==ix].sum()
-        print(cluster_stat)
-
-        with Parallel(n_jobs=10, prefer="threads", verbose=20) as parallel:
-            parallel(
-                delayed(permutation_testing)(X[:,ch_x,ch_y], y, cluster_stat, pval_arr[ch_x,ch_y], arr==ix, test=test) for i in range(n_iter))
-
-plot_specific(bin_stat*np.sign(stat), ch_x, ch_y)
-cosa = pval_arr/n_iter
-plot_specific(cosa, ch_x, ch_y)
+#%% A PARTIR DE AQUÍ TESTING. 
+# test = ttest_ind
+# n_iter=5000
+# twosided=True
+# significance =0.05
+# cluster_threshold=20
 
 
-# %%
-ch_x,ch_y = 30,23
-plt.imshow(pval[ch_x, ch_y])
-plt.colorbar()
-# %%
-def plot_avg_connectivity(hipermatriz):
-    _, ax  = plt.subplots(figsize=(7,7))
-    if np.nanmin(hipermatriz)<0:
-        vmax = np.nanmax(abs(hipermatriz))
-        vmin = -vmax
-        colormap = 'coolwarm'
-    else:
-        vmin, vmax = 0, np.nanmax(hipermatriz)
-        colormap = 'inferno'
-    val = np.nanmean(np.nanmean(hipermatriz, axis=-1), axis=-1)
-    f = ax.matshow(val, vmin=vmin, vmax=vmax, cmap= colormap)
-    ax.set_yticks(range(31))
-    ax.set_xticks(range(31))
-    ax.set_yticklabels(channel_n)
-    ax.set_xticklabels(channel_n,rotation=60)
-    plt.colorbar(f)
+# def permutation_testing(X,y, cluster_stat, arr, select, test):
+#     y_surr = np.random.permutation(y)
+#     stat_surr, _ = test(X[y_surr==0], 
+#                             X[y_surr==1])
+#     cs_surr = stat_surr[select].sum()
+#     # Compute quantile. 
+#     if cluster_stat > cs_surr:
+#         arr[select] += 1
 
-plot_avg_connectivity((1-abs(pval))*np.sign(pval))
+# stat, _ = test(X[y==0], X[y==1])
+# if twosided:
+#     th = significance/2
+#     th_l, th_u = np.quantile(stat, th), np.quantile(stat, 1-th)
+# else: 
+#     th_l, th_u = -np.inf, np.quantile(stat, 1-significance)
 
-#%%
+# bin_stat = (stat < th_l) | (stat > th_u)
+# label_arr = np.zeros(bin_stat.shape)
+# pval_arr = np.zeros(bin_stat.shape)*np.nan
+
+# ch_x, ch_y = 0,0
+# arr, n_labs = label(bin_stat[ch_x, ch_y])
+# # count elements per cluster
+# count, idx = np.histogram(arr.flatten(), bins=n_labs+1)
+# idx = idx.astype(int)[:-1] 
+# # keep only supra-threshold clusters: 
+# idx_sel = idx[count>cluster_threshold]+1
+# print(idx_sel)
+# if len(idx_sel>1):
+#     for ix in idx_sel[1:]:
+#         # save regions:
+#         cluster_lab = np.zeros(arr.shape)
+#         cluster_lab[select] = ix
+#         pval_arr[ch_x,ch_y][select] = 0
+#         label_arr[ch_x, ch_y] += cluster_lab
+#         # compute cluster-based statistic: 
+#         cluster_stat = stat[ch_x, ch_y][select].sum()
+#         print(cluster_stat)
+
+#         with Parallel(n_jobs=10, prefer="threads", verbose=20) as parallel:
+#             parallel(
+#                 delayed(permutation_testing)(X[:,ch_x,ch_y], y, cluster_stat, pval_arr[ch_x,ch_y], select, test=test) for i in range(n_iter))
+
+# plot_specific(bin_stat*np.sign(stat), ch_x, ch_y)
+# cosa = pval_arr/n_iter
+# plot_specific(cosa, ch_x, ch_y)
+
+
+# # %%
+# ch_x,ch_y = 30,23
+# plt.imshow(pval[ch_x, ch_y])
+# plt.colorbar()
+# # %%
+# def plot_avg_connectivity(hipermatriz):
+#     _, ax  = plt.subplots(figsize=(7,7))
+#     if np.nanmin(hipermatriz)<0:
+#         vmax = np.nanmax(abs(hipermatriz))
+#         vmin = -vmax
+#         colormap = 'coolwarm'
+#     else:
+#         vmin, vmax = 0, np.nanmax(hipermatriz)
+#         colormap = 'inferno'
+#     val = np.nanmean(np.nanmean(hipermatriz, axis=-1), axis=-1)
+#     f = ax.matshow(val, vmin=vmin, vmax=vmax, cmap= colormap)
+#     ax.set_yticks(range(31))
+#     ax.set_xticks(range(31))
+#     ax.set_yticklabels(channel_n)
+#     ax.set_xticklabels(channel_n,rotation=60)
+#     plt.colorbar(f)
+
+# plot_avg_connectivity((1-abs(pval))*np.sign(pval))
+
+# #%%
+
+# test = ttest_ind
+# n_iter=1000
+# n_jobs=10
+# twosided=True
+# alpha =0.05
+# cluster_threshold=20
+
+# def permutation_testing(test, X, y, ref, arr):
+#     y_surr = np.random.permutation(y)
+#     stat_surr, _ = test(X[y_surr==0], 
+#                             X[y_surr==1])
+#     # gets quantile 
+#     arr += ref>stat_surr
+
+# # compute stats 
+# stat, _ = test(X[y==0], X[y==1])
+# # sets thresholds for umbralization
+# if twosided:
+#     th = alpha/2
+# #     th_l, th_u = np.quantile(stat, th), np.quantile(stat, 1-th)
+# # else: 
+# #     th_l, th_u = -np.inf, np.quantile(stat, 1-self.alpha)
+# pval_arr = np.zeros(stat.shape)
+# # go channel per channel: 
+# # for ch_x in range(stat.shape[0]):
+# #     for ch_y in range(stat.shape[1]):
+# ch_x, ch_y = 0, 0
+# with Parallel(n_jobs=n_jobs, prefer="threads", verbose=20) as parallel:
+#     parallel(
+#         delayed(permutation_testing)(test, X[:,ch_x,ch_y], y, stat[ch_x,ch_y], pval_arr[ch_x,ch_y]) for i in range(n_iter))
+
+# pval_arr = pval_arr/n_iter
+# if twosided: 
+#     pval_arr[(pval_arr>=th)&(pval_arr<=1-th)] = np.nan
+#     pval_arr[pval_arr<th] = -pval_arr[pval_arr<th]
+#     pval_arr[pval_arr>1-th] = 1-pval_arr[pval_arr>1-th]
+# else:
+#     pval_arr[pval_arr<1-alpha] = np.nan
+#     pval_arr[pval_arr>1-alpha] = 1-pval_arr[pval_arr>1-th]
+
+# plot_avg_connectivity((1-abs(pval))*np.sign(pval))
