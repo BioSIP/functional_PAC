@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt 
 import re
 from scipy.ndimage import label
-
+from joblib import Parallel, delayed
 
 global bands
 global channel_n
@@ -37,7 +37,7 @@ def load_subgroup(path, stimulus=2, group='C', age=7):
 
 datos_ctl = load_subgroup(descriptor_path, group='C', stimulus=2)
 
-datos_dlx = load_subgroup(descriptor_path, group='RD', stimulus=20)
+datos_dlx = load_subgroup(descriptor_path, group='RD', stimulus=2)
 
 
 def plot_specific(hipermatriz, ch_x, ch_y):
@@ -49,19 +49,70 @@ def plot_specific(hipermatriz, ch_x, ch_y):
     plt.colorbar(f)
 
 
+#%% 
 from scipy.stats import ttest_ind, mannwhitneyu
 from scipy.ndimage import label
 
-class ClusterBasedPermutationTesting(object):
+class PermutationTesting(object):
 
-    def __init__(self, n_iter=200, significance = 0.05, cluster_threshold = 20, 
-                test=ttest_ind, twosided=False):
+    def __init__(self, n_iter=200, alpha = 0.05, 
+                test=ttest_ind, twosided=False, n_jobs=10):
         self.test = test
         self.n_iter = n_iter
-        self.significance = significance
-        self.cluster_threshold = cluster_threshold
+        self.alpha = alpha
         self.twosided = twosided
+        self.n_jobs = n_jobs
 
+    def permutation_testing(self, X, y, ref, arr):
+        y_surr = np.random.permutation(y)
+        stat_surr, _ = self.test(X[y_surr==0], 
+                                X[y_surr==1])
+        # gets quantile 
+        arr += ref>stat_surr
+
+    def fit(self, X, y):
+        # compute stats 
+        stat, _ = self.test(X[y==0], X[y==1])
+        # sets thresholds for umbralization
+        if self.twosided:
+            th = self.alpha/2
+        #     th_l, th_u = np.quantile(stat, th), np.quantile(stat, 1-th)
+        # else: 
+        #     th_l, th_u = -np.inf, np.quantile(stat, 1-self.alpha)
+        pval_arr = np.empty(stat.shape)*np.nan
+        # go channel per channel: 
+        for ch_x in range(stat.shape[0]):
+            for ch_y in range(stat.shape[1]):
+                with Parallel(n_jobs=self.n_jobs, prefer="threads", verbose=20) as parallel:
+                    parallel(
+                        delayed(self.permutation_testing)(X[:,ch_x,ch_y], y, stat[ch_x,ch_y], pval_arr[ch_x,ch_y]) for i in range(self.n_iter))
+        
+        pval_arr = pval_arr/self.n_iter
+        if self.twosided: 
+            pval_arr[(pval_arr>=th)&(pval_arr<=1-th)] = np.nan
+            pval_arr[pval_arr<th] = -pval_arr[pval_arr<th]
+            pval_arr[pval_arr>1-th] = 1-pval_arr[pval_arr>1-th]
+        else:
+            pval_arr[pval_arr<1-self.alpha] = np.nan
+            pval_arr[pval_arr>1-self.alpha] = 1-pval_arr[pval_arr>1-th]
+        return pval_arr 
+
+
+class ClusterBasedPermutationTesting(PermutationTesting):
+
+    def __init__(self, n_iter=200, significance = 0.05, cluster_threshold = 20, 
+                test=ttest_ind, twosided=False, n_jobs=10):
+        PermutationTesting.__init__(self, n_iter, alpha, test, twosided, n_jobs)
+        self.cluster_threshold = cluster_threshold
+
+    def permutation_testing(self, X,y, cluster_stat, arr, select):
+        y_surr = np.random.permutation(y)
+        stat_surr, _ = self.test(X[y_surr==0], 
+                                X[y_surr==1])
+        cs_surr = stat_surr[select].sum()
+        # Compute quantile. 
+        if cluster_stat > cs_surr:
+            arr[select] += 1
 
     def fit(self, X, y):
         """ Performs the Cluster-Based Permutation Testing for
@@ -81,10 +132,10 @@ class ClusterBasedPermutationTesting(object):
         stat, _ = self.test(X[y==0], X[y==1])
         # sets thresholds for umbralization
         if self.twosided:
-            th = self.significance/2
+            th = self.alpha/2
             th_l, th_u = np.quantile(stat, th), np.quantile(stat, 1-th)
         else: 
-            th_l, th_u = -np.inf, np.quantile(stat, 1-self.significance)
+            th_l, th_u = -np.inf, np.quantile(stat, 1-self.alpha)
         # threshold the stat array 
         bin_stat = (stat < th_l) | (stat > th_u)
         # label connected clusters
@@ -107,22 +158,25 @@ class ClusterBasedPermutationTesting(object):
                         label_arr[ch_x, ch_y] += cluster_lab
                         # compute cluster-based statistic: 
                         cluster_stat = stat[ch_x, ch_y][arr==ix].sum()
-                        for _ in range(self.n_iter):
-                            y_surr = np.random.permutation(y)
-                            stat_surr, _ = self.test(X[y_surr==0,ch_x,ch_y], 
-                                                    X[y_surr==1,ch_x,ch_y])
-                            cs_surr = stat_surr[arr==ix].sum()
-                            # Compute quantile. 
-                            if cluster_stat > cs_surr:
-                                pval_arr[ch_x, ch_y][arr==ix] += 1
+                        with Parallel(n_jobs=self.n_jobs, prefer="threads", verbose=20) as parallel:
+                            parallel(
+                                delayed(self.permutation_testing)(X[:,ch_x,ch_y], y, cluster_stat, pval_arr[ch_x,ch_y], arr==ix) for i in range(self.n_iter))
+                        # for _ in range(self.n_iter):
+                        #     y_surr = np.random.permutation(y)
+                        #     stat_surr, _ = self.test(X[y_surr==0,ch_x,ch_y], 
+                        #                             X[y_surr==1,ch_x,ch_y])
+                        #     cs_surr = stat_surr[arr==ix].sum()
+                        #     # Compute quantile. 
+                        #     if cluster_stat > cs_surr:
+                        #         pval_arr[ch_x, ch_y][arr==ix] += 1
         pval_arr = pval_arr/self.n_iter
         if self.twosided: 
             pval_arr[(pval_arr>=th)&(pval_arr<=1-th)] = np.nan
             pval_arr[pval_arr<th] = -pval_arr[pval_arr<th]
             pval_arr[pval_arr>1-th] = 1-pval_arr[pval_arr>1-th]
         else:
-            pval_arr[pval_arr<1-th] = np.nan
-            pval_arr[pval_arr>1-th] = 1-pval_arr[pval_arr>1-th]
+            pval_arr[pval_arr<1-self.alpha] = np.nan
+            pval_arr[pval_arr>1-self.alpha] = 1-pval_arr[pval_arr>1-th]
         return pval_arr 
 
 #%% 
@@ -131,7 +185,7 @@ y = np.r_[np.ones(datos_ctl.shape[0]), np.zeros(datos_dlx.shape[0])]
 
 #%% 
 cbpt = ClusterBasedPermutationTesting(n_iter=1000, twosided=True, 
-                cluster_threshold = 10, test=mannwhitneyu)
+                cluster_threshold = 10, test=ttest_ind, n_jobs=20)
 pvalu = cbpt.fit(X,y)
 #%%
 test = ttest_ind
@@ -139,6 +193,16 @@ n_iter=5000
 twosided=True
 significance =0.05
 cluster_threshold=20
+
+
+def permutation_testing(X,y, cluster_stat, arr, select, test):
+    y_surr = np.random.permutation(y)
+    stat_surr, _ = test(X[y_surr==0], 
+                            X[y_surr==1])
+    cs_surr = stat_surr[select].sum()
+    # Compute quantile. 
+    if cluster_stat > cs_surr:
+        arr[select] += 1
 
 stat, _ = test(X[y==0], X[y==1])
 if twosided:
@@ -151,14 +215,14 @@ bin_stat = (stat < th_l) | (stat > th_u)
 label_arr = np.zeros(bin_stat.shape)
 pval_arr = np.zeros(bin_stat.shape)*np.nan
 
-ch_x, ch_y = 28,3
+ch_x, ch_y = 0,0
 arr, n_labs = label(bin_stat[ch_x, ch_y])
 # count elements per cluster
 count, idx = np.histogram(arr.flatten(), bins=n_labs+1)
 idx = idx.astype(int)[:-1] 
 # keep only supra-threshold clusters: 
 idx_sel = idx[count>cluster_threshold]+1
-
+print(idx_sel)
 if len(idx_sel>1):
     for ix in idx_sel[1:]:
         # save regions:
@@ -169,15 +233,10 @@ if len(idx_sel>1):
         # compute cluster-based statistic: 
         cluster_stat = stat[ch_x, ch_y][arr==ix].sum()
         print(cluster_stat)
-        for _ in range(n_iter):
-            y_surr = np.random.permutation(y)
-            stat_surr, _ = ttest_ind(X[y_surr==0,ch_x,ch_y], 
-                                    X[y_surr==1,ch_x,ch_y])
-            cs_surr = stat_surr[arr==ix].sum()
-            # Compute quantile. 
-            if cluster_stat > cs_surr:
-                pval_arr[ch_x, ch_y][arr==ix] += 1
 
+        with Parallel(n_jobs=10, prefer="threads", verbose=20) as parallel:
+            parallel(
+                delayed(permutation_testing)(X[:,ch_x,ch_y], y, cluster_stat, pval_arr[ch_x,ch_y], arr==ix, test=test) for i in range(n_iter))
 
 plot_specific(bin_stat*np.sign(stat), ch_x, ch_y)
 cosa = pval_arr/n_iter
