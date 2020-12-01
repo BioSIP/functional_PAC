@@ -120,7 +120,7 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         X_test = X.reshape((X.shape[0], np.prod(dims)))
         if self.test=='mannwhitneyu':
             stats = self.mwu_vectorized(X_test[y==0], X_test[y==1])
-        elif type(self.test)==function:
+        elif callable(self.test):
             stats,_ = self.test(X_test[y==0], X_test[y==1])
         stats = stats.reshape(dims)
         return stats
@@ -215,7 +215,7 @@ bands = {'Delta': (0.5, 4),
          'Gamma': (25, 140)}
 
 ct=10
-test = 'mannwhitneyu'
+test = ttest_ind
 n_iter = 1000
 alpha = .05
 njobs = 10
@@ -225,7 +225,7 @@ channel_n = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'F
                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
                   'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
 
-descriptor_path = '/media/NAS/home/marco/projects/PAC_Paper/functional_PAC/data/tensorpac'
+descriptor_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/tensorpac'
 
 datos_ctl = load_subgroup(descriptor_path, group='C', stimulus=2)
 datos_dlx = load_subgroup(descriptor_path, group='RD', stimulus=2)
