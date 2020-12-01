@@ -97,6 +97,9 @@ class PermutationTesting(object):
             pval_arr[pval_arr>1-self.alpha] = 1-pval_arr[pval_arr>1-th]
         return pval_arr 
 
+# from itertools import product
+
+from scipy.stats import rankdata
 
 class ClusterBasedPermutationTesting(PermutationTesting):
 
@@ -106,10 +109,54 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         self.cluster_threshold = cluster_threshold
         self.output = output
 
+    def mwu_vectorized(self, x1,x2):
+        """Computes the two-sided Mann-Whitney-Wilcoxon U-Test
+        over whole matrices (unlike the scipy version).
+        Use reshape to reduce any matrix to two-dimensional. 
+
+        Args:
+            x1 (np.ndarray): two-dimensional array with features of group 0
+            x2 (np.ndarray): two-dimensional array with features of group 1
+
+        Returns:
+            np.ndarray: Array with the two-tailed values for U
+        """
+        x1 = np.asarray(x1)
+        x2 = np.asarray(x2)
+        n1 = len(x1)
+        n2 = len(x2)
+        
+        ranked = rankdata(np.concatenate((x1, x2)), axis=0)
+        rank1 = ranked[0:n1] # gets x-ranks
+        u1 = n1*n2 + (n1*(n1+1))/2.0 - np.sum(rank1, axis=0) # calc U for 1
+        u2 = n1*n2 - u1 # remainder is U for y
+        bigu = np.max(np.c_[u1,u2],axis=1)
+        return bigu
+
+    def matrix_testing(self, X, y, axis=0):
+        """Implement the statistical test in any given size matrix. 
+
+        Args:
+            X ([type]): [description]
+            y ([type]): [description]
+            axis (int, optional): [description]. Defaults to 0.
+
+        Returns:
+            [type]: [description]
+        """
+        # axis: where the statistic is computed upon. 
+        dims = X.shape[1:]
+        X_test = X.reshape((X.shape[0], np.prod(dims)))
+        if self.test=='mannwhitneyu':
+            stats = self.mwu_vectorized(X_test[y==0], X_test[y==1])
+        else:
+            stats,_ = self.test(X_test[y==0], X_test[y==1])
+        stats = stats.reshape(dims)
+        return stats
+
     def permutation_testing(self, X,y, cluster_stat, arr, select):
         y_surr = np.random.permutation(y)
-        stat_surr, _ = self.test(X[y_surr==0], 
-                                X[y_surr==1])
+        stat_surr = self.matrix_testing(X, y)
         cs_surr = stat_surr[select].sum()
         # Compute quantile. 
         if cluster_stat > cs_surr:
@@ -130,7 +177,7 @@ class ClusterBasedPermutationTesting(PermutationTesting):
             y (numpy.ndarray): [description]
         """
         # compute stats 
-        stat, _ = self.test(X[y==0], X[y==1])
+        stat = self.matrix_testing(X, y)
         # sets thresholds for umbralization
         if self.twosided:
             th = self.alpha/2
@@ -324,23 +371,65 @@ class BandConnectivityPlotter(object):
 
 
 #%% A PARTIR DE AQUÍ TESTING. 
-test = ttest_ind
+test = mannwhitneyu
 n_iter=1000
 twosided=True
 alpha =0.05
 cluster_threshold=10
 n_jobs = 10
+from scipy.stats import rankdata 
+
+def mwu_vectorized(x1,x2):
+    """Computes the two-sided Mann-Whitney-Wilcoxon U-Test
+    over whole matrices (unlike the scipy version).
+    Use reshape to reduce any matrix to two-dimensional. 
+
+    Args:
+        x1 (np.ndarray): two-dimensional array with features of group 0
+        x2 (np.ndarray): two-dimensional array with features of group 1
+
+    Returns:
+        np.ndarray: Array with the two-tailed values for U
+    """
+    x1 = np.asarray(x1)
+    x2 = np.asarray(x2)
+    n1 = len(x1)
+    n2 = len(x2)
+    
+    ranked = rankdata(np.concatenate((x1, x2)), axis=0)
+    rank1 = ranked[0:n1] # gets x-ranks
+    u1 = n1*n2 + (n1*(n1+1))/2.0 - np.sum(rank1, axis=0) # calc U for 1
+    u2 = n1*n2 - u1 # remainder is U for y
+    bigu = np.max(np.c_[u1,u2],axis=1)
+    return bigu
+
+def matrix_testing(test, X, y, axis=0):
+    # axis: where the statistic is computed upon. 
+    dims = X.shape[1:]
+    score_var = np.zeros(dims)
+    X_test = X.reshape((X.shape[0], np.prod(dims)))
+    if test=='mannwhitneyu':
+        stats = mwu_vectorized(X_test[y==0], X_test[y==1])
+    else:
+        stats,_ = test(X_test[y==0], X_test[y==1])
+    stats = stats.reshape(dims)
+    return stats
 
 def permutation_testing(test, X,y, cluster_stat, arr, select):
     y_surr = np.random.permutation(y)
-    stat_surr, _ = test(X[y_surr==0], 
-                            X[y_surr==1])
+    stat_surr = matrix_testing(X, y)
     cs_surr = stat_surr[select].sum()
     # Compute quantile. 
     if cluster_stat > cs_surr:
         arr[select] += 1
+    
+test = ttest_ind
 
-stat, _ = test(X[y==0], X[y==1])
+antes = time.time()
+stat = matrix_testing(test, X, y)
+despues = time.time()
+print(f'Time spanning: {despues-antes} s')
+
 # sets thresholds for umbralization
 if twosided:
     th = alpha/2
