@@ -190,7 +190,7 @@ class ClusterBasedPermutationTesting(PermutationTesting):
                         #     if cluster_stat > cs_surr:
                         #         pval_arr[ch_x, ch_y][select] += 1
         pval_arr = pval_arr/self.n_iter
-        if self.output=='quantile', or self.output=='both':
+        if self.output=='quantile' or self.output=='both':
             quantile_arr = pval_arr.copy()
         if self.output=='pval' or self.ouput=='both':
             if self.twosided: 
@@ -225,7 +225,7 @@ channel_n = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'F
                   'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
                   'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
 
-descriptor_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/tensorpac'
+descriptor_path = '/media/NAS/home/marco/projects/PAC_Paper/functional_PAC/data/tensorpac'
 
 datos_ctl = load_subgroup(descriptor_path, group='C', stimulus=2)
 datos_dlx = load_subgroup(descriptor_path, group='RD', stimulus=2)
