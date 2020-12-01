@@ -4,7 +4,7 @@ from scipy import signal
 import os
 from tqdm import tqdm
 from joblib import Parallel, delayed
-from itertools import permutations
+from itertools import product
 from scipy.stats import shapiro
 import pickle
 import argparse
@@ -134,9 +134,8 @@ if __name__ == "__main__":
         hilbert_t = data['hilbert']
         ce = data['ces']
         del data
-        channels_combinations = list(permutations(range(hilbert_t.shape[1]), 2))
-        channels_combinations += [(i, i) for i in range(hilbert_t.shape[1])]
-
+        channels_combinations = product(hilbert_t.shape[1], repeat=2)
+        
         for id_subject in tqdm(range(hilbert_t.shape[0]), desc="Subject #"):
 
             subject_filename = "{}_{}".format(id_subject, filename)
@@ -154,7 +153,7 @@ if __name__ == "__main__":
 
             parallel_pacs = Parallel(n_jobs=args.jobs_number, prefer="threads", verbose=5)(
                 delayed(get_pac_par)(x, y, hilbert_t[id_subject], ce[id_subject], numsurrogate=1000)
-                for x, y in list(channels_combinations)
+                for x, y in channels_combinations
             )
 
             # for key, pac in parallel_pacs:
