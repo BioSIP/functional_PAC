@@ -151,13 +151,27 @@ class BandConnectivityPlotter(object):
                                 vmin=vmin, vmax=vmax, aspect='auto',
                                 extent=[f_pha[0], f_pha[1], f_amp[0], f_amp[1]])
                 if receiving_amp==(n_chan-1):
-                    ax[receiving_amp, giving_phase].set_xlabel(channel_n[giving_phase])
+                    ax[receiving_amp, giving_phase].set_xlabel(self.channels[giving_phase])
                 else:
                     ax[receiving_amp, giving_phase].set_xticklabels([])
                 if giving_phase==0:
-                    ax[receiving_amp, giving_phase].set_ylabel(channel_n[receiving_amp])
+                    ax[receiving_amp, giving_phase].set_ylabel(self.channels[receiving_amp])
                 else:
                     ax[receiving_amp, giving_phase].set_yticklabels([])
         #plt.tight_layout()
         plt.show()
         fig.savefig(f'{filename}.pdf')
+
+
+
+#%% 
+data = np.load('pvalue_clusterbased.npy')
+
+th = 0.025
+data_sig = data.copy()
+data_sig[(data>th) & (data<1-th)] = np.nan
+
+plotter = BandConnectivityPlotter()
+
+plotter.display_band_connectivity(data_sig, f_pha=(2,20), f_amp=(15,120))
+# %%

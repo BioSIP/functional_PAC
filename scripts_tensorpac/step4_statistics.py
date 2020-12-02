@@ -133,6 +133,13 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         if cluster_stat > cs_surr:
             arr[select] += 1
 
+    def supra_threshold(self, arr):
+        # count elements per cluster
+        n_labs = len(np.unique(arr))
+        count, idx = np.histogram(arr.flatten(), bins=n_labs+1)
+        idx = idx.astype(int)[:-1] 
+        return idx[count>self.cluster_threshold]+1
+
     def fit(self, X, y):
         """ Performs the Cluster-Based Permutation Testing for
         corrections. 
@@ -163,11 +170,8 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         for ch_x in range(stat.shape[0]):
             for ch_y in range(stat.shape[1]):
                 arr, n_labs = label(bin_stat[ch_x, ch_y])
-                # count elements per cluster
-                count, idx = np.histogram(arr.flatten(), bins=n_labs+1)
-                idx = idx.astype(int)[:-1] 
                 # keep only supra-threshold clusters: 
-                idx_sel = idx[count>self.cluster_threshold]+1
+                idx_sel = self.supra_threshold(arr)
                 if len(idx_sel>1):
                     for ix in idx_sel[1:]:
                         # save regions:
@@ -181,18 +185,11 @@ class ClusterBasedPermutationTesting(PermutationTesting):
                         with Parallel(n_jobs=self.n_jobs, prefer="threads", verbose=20) as parallel:
                             parallel(
                                 delayed(self.permutation_testing)(X[:,ch_x,ch_y], y, cluster_stat, pval_arr[ch_x,ch_y], select) for i in range(self.n_iter))
-                        # for _ in range(self.n_iter):
-                        #     y_surr = np.random.permutation(y)
-                        #     stat_surr, _ = self.test(X[y_surr==0,ch_x,ch_y], 
-                        #                             X[y_surr==1,ch_x,ch_y])
-                        #     cs_surr = stat_surr[select].sum()
-                        #     # Compute quantile. 
-                        #     if cluster_stat > cs_surr:
-                        #         pval_arr[ch_x, ch_y][select] += 1
+
         pval_arr = pval_arr/self.n_iter
         if self.output=='quantile' or self.output=='both':
             quantile_arr = pval_arr.copy()
-        if self.output=='pval' or self.ouput=='both':
+        if self.output=='pval' or self.output=='both':
             if self.twosided: 
                 pval_arr[(pval_arr>=th)&(pval_arr<=1-th)] = np.nan
                 pval_arr[pval_arr<th] = -pval_arr[pval_arr<th]
