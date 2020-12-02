@@ -186,20 +186,27 @@ class BandConnectivityPlotter(object):
 
 
 #%% 
-path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PAC/'
-data = np.load(os.path.join(path, 'quantile.npy'))
 
-th = 0.025
-data_sig = data.copy()
-data_sig[(data>th) & (data<1-th)] = np.nan
+if __name__ == "__main__":
+    path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PAC/'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_folder', type=str, default=path)
+    args = parser.parse_args()
+    descriptors_path = args.input_folder
 
-plotter = BandConnectivityPlotter()
+    data = np.load(os.path.join(path, 'quantile.npy'))
 
-plotter.display_band_connectivity(data_sig, f_pha=(2,20), f_amp=(15,120))
-# %%
-plotter = BandConnectivityPlotter()
-plotter.plot_pac(data_sig, channels=[(15,0), (1,10)])
+    th = 0.025
+    data_sig = data.copy()
+    data_sig[(data>th) & (data<1-th)] = np.nan
 
-#%%
-plotter.plot_connect_hipermatrix(data_sig, filename='prueba')
-# %%
+    plotter = BandConnectivityPlotter()
+
+    plotter.display_band_connectivity(data_sig, f_pha=(2,20), f_amp=(15,120))
+    # %%
+    plotter = BandConnectivityPlotter()
+    plotter.plot_pac(data_sig, channels=[(15,0), (1,10)])
+
+    #%%
+    plotter.plot_connect_hipermatrix(data_sig, filename='prueba')
+    # %%
