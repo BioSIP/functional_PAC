@@ -30,7 +30,7 @@ from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 
 # plot_avg_connectivity(data_subject)
 
-
+#%%
 
 import matplotlib.pyplot as plt 
 from matplotlib import cm 
@@ -91,6 +91,26 @@ class BandConnectivityPlotter(object):
         list_def = [band for band in self.bands if band in bands]
         return list_def
 
+    def plot_pac(self, hipermatrix, f_pha=(2,20), f_amp=(15,120), channels=[(0,0)]):
+        n_plots = len(channels)
+        ncols = max(1, np.ceil(np.sqrt(n_plots)).astype(int))
+        nrows = max(1, np.floor(np.sqrt(n_plots)).astype(int))
+        fig, ax = plt.subplots(nrows, ncols, figsize=(ncols*5, nrows*5))
+        ax = ax.flatten()
+        vmin, vmax = np.nanmin(hipermatrix), np.nanmax(hipermatrix)
+        if vmin<0:
+            vmax = max(-vmin, vmax)
+            vmin = -vmax
+        else:
+            self.cmap = 'inferno'
+        for ix in range(n_plots):
+            ax[ix].imshow(hipermatrix[channels[ix]],cmap=self.cmap, origin='lower',
+                                vmin=vmin, vmax=vmax, aspect='auto',
+                                extent=[f_pha[0], f_pha[1], f_amp[0], f_amp[1]])
+            ax[ix].set_xlabel(f'Frequency of {self.channels[channels[ix][0]]} providing phase (Hz)')
+            ax[ix].set_ylabel(f'Frequency of {self.channels[channels[ix][1]]} receiving amplitude (Hz)')
+            ax[ix].set_title(f'PAC connectivity')
+
     def display_band_connectivity(self, hipermatrix, f_pha=(2,20), f_amp=(15,120)):
         # Check which bands there are: 
         bands_phase = self.inverse_band_check(f_pha)
@@ -107,7 +127,8 @@ class BandConnectivityPlotter(object):
                 mask = np.outer((fpha_ref<=limits_phas[1])&(fpha_ref>limits_phas[0]),
                                 (famp_ref<=limits_amp[1])&(famp_ref>limits_amp[0]))
                 matrix = np.nanmean(hipermatrix[:,:,mask.T], axis=-1)
-                ax[row, i].imshow(matrix, origin='lower')
+                ax[row, i].imshow(matrix.T, origin='lower')
+                # el T es necesario para que la banda de origen sea el eje X
                 if row==(len(bands_amp)-1):
                     ax[row, i].set_xlabel(fas)
                 if i==0:
@@ -134,7 +155,7 @@ class BandConnectivityPlotter(object):
         ax.set_xticklabels(self.channels,rotation=60)
         plt.colorbar(f)
 
-    def plot_connect_hipermatrix(self, hipermatrix, f_pha, f_amp, filename):
+    def plot_connect_hipermatrix(self, hipermatrix, f_pha=(2,20), f_amp=(15,120), filename='untitled'):
         n_chan, _ , _, _ = hipermatrix.shape
         fig, ax = plt.subplots(n_chan, n_chan, figsize=(n_chan*1.5,n_chan*1.5))
         vmin, vmax = np.nanmin(hipermatrix), np.nanmax(hipermatrix)
@@ -165,7 +186,8 @@ class BandConnectivityPlotter(object):
 
 
 #%% 
-data = np.load('pvalue_clusterbased.npy')
+path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PAC/'
+data = np.load(os.path.join(path, 'quantile.npy'))
 
 th = 0.025
 data_sig = data.copy()
@@ -174,4 +196,10 @@ data_sig[(data>th) & (data<1-th)] = np.nan
 plotter = BandConnectivityPlotter()
 
 plotter.display_band_connectivity(data_sig, f_pha=(2,20), f_amp=(15,120))
+# %%
+plotter = BandConnectivityPlotter()
+plotter.plot_pac(data_sig, channels=[(15,0), (1,10)])
+
+#%%
+plotter.plot_connect_hipermatrix(data_sig, filename='prueba')
 # %%
