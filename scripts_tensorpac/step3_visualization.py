@@ -237,6 +237,9 @@ import matplotlib.patches as mpatches
 from matplotlib.collections import PatchCollection
 import numpy as np
 
+import pickle
+
+
 class Head(PatchCollection):
     def __init__(self, pos = (0,0)):
         self.patches = []
@@ -252,9 +255,38 @@ class Head(PatchCollection):
                                 facecolors='white', linewidths=1,
                                 antialiaseds=True)
 
+class EEGarray(object):
+    def __init__(self, electrodes, layout='ten_twenty'):
+        self.layout = layout
+        if type(electrodes)==list:
+            self.names, self.pos = self.get_positions(electrodes)
+        elif type(electrodes)==dict:
+            self.names = electrodes.keys()
+            self.pos = np.asarray(list(electrodes.values()))
+        else:
+            pass
+            
+    def get_positions(self, electrodes):
+        path_data = '../data/'
+        eeg_layout = self.load_dict(path_data+self.layout)
+        names = [el for i in range(len(electrodes)) for el in list(positions.keys())
+                  if el.upper()==electrodes[i].upper()]
+        positions = [eeg_layout[el] for el in names]
+        return names, positions
+
+    def save_dict(self, obj, name):
+        with open(name + '.lay', 'wb') as f:
+            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+    def load_dict(self, name):
+        with open(name + '.lay', 'rb') as f:
+            return pickle.load(f)
+
 collection = Head()
 fig, ax = plt.subplots()
 ax.add_collection(collection)
+array = EEGarray(electrodes)
+
 
 plt.axis('equal')
 plt.axis('off')
