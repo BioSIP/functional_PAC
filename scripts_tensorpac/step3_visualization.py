@@ -194,15 +194,6 @@ class BandConnectivityPlotter(object):
         plt.show()
         fig.savefig(f'{filename}.pdf')
 
-#%% 
-class MNE_connectivity(object):
-    def __init__(self):
-        import mne 
-        from mne.channels.montage import get_builtin_montages
-        montage = mne.channels.make_standard_montage('standard_1020')
-
-
-    
 
 
 #%% 
@@ -230,20 +221,35 @@ if __name__ == "__main__":
     #%%
     plotter.plot_connect_hipermatrix(data_sig, filename='prueba')
 
+#%% 
 
+electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 
+                            'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'T8', 'TP9', 
+                            'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
+                            'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+
+adjacenty=np.random.randn(len(electrodes),len(electrodes))
+adjacenty[np.abs(adjacenty)<1.5] = np.nan
+fig, ax  =plt.subplots(figsize=(7,7))
+ax.imshow(adjacenty)
+ax.set_yticks(range(len(electrodes)))
+ax.set_xticks(range(len(electrodes)))
+ax.set_yticklabels(electrodes)
+ax.set_xticklabels(electrodes,rotation=60)
 #%%  
 import matplotlib.pyplot as plt 
 import matplotlib.patches as mpatches
 from matplotlib.collections import PatchCollection
 import numpy as np
-
+from matplotlib import cm
+from scipy.stats import multivariate_normal
 import pickle
 
 
 class Head(PatchCollection):
     def __init__(self, pos = (0,0)):
         self.patches = []
-        self.head = mpatches.Circle(pos, 1, ec="black", fc='white')
+        self.head = mpatches.Circle(pos, 1)
         self.ear_L = mpatches.Ellipse((-1,0), 0.2, 0.5)
         self.ear_R = mpatches.Ellipse((1,0), 0.2, 0.5)
         self.nose = mpatches.RegularPolygon((0,1), 3, 0.2)
@@ -255,9 +261,11 @@ class Head(PatchCollection):
                                 facecolors='white', linewidths=1,
                                 antialiaseds=True)
 
-class EEGarray(object):
-    def __init__(self, electrodes, layout='ten_twenty'):
+class EEGarray(PatchCollection):
+    def __init__(self, electrodes, layout='ten_twenty', marker_size=0.021,
+                        projection='simple'):
         self.layout = layout
+        self.marker_size = marker_size
         if type(electrodes)==list:
             self.names, self.pos = self.get_positions(electrodes)
         elif type(electrodes)==dict:
@@ -265,15 +273,49 @@ class EEGarray(object):
             self.pos = np.asarray(list(electrodes.values()))
         else:
             pass
-            
+        assert projection in ['simple', 'lambert']
+        self.projection = projection
+        self.patches = self.generate_patch_list()
+        xx, yy = np.meshgrid(np.arange(-1.5,1.5,0.05), np.arange(-1.5,1.5,0.05))     
+        zz = np.zeros(xx.shape)
+        self.topodist = dict(xx=xx, yy=yy, zz=zz)    
+        self.cmap = cm.get_cmap('coolwarm')
+        PatchCollection.__init__(self, self.patches, antialiaseds=True)
+
     def get_positions(self, electrodes):
         path_data = '../data/'
         eeg_layout = self.load_dict(path_data+self.layout)
-        names = [el for i in range(len(electrodes)) for el in list(positions.keys())
+        names = [el for i in range(len(electrodes)) for el in list(eeg_layout.keys())
                   if el.upper()==electrodes[i].upper()]
         positions = [eeg_layout[el] for el in names]
         return names, positions
 
+    def generate_patch_list(self):
+        patches = []
+        for ix, pair in enumerate(self.pos):
+            coords_xy = self.convert_sph_xy(pair)
+            patches.append(mpatches.Circle(coords_xy, self.marker_size, 
+                                    ec=None, fc='black'))
+            self.label(pair,self.names[ix])
+        return patches
+
+    def label(self, pair, text):
+        radius = 1.15#+0.05*np.sin(np.abs(np.deg2rad(pair[0])))
+        xy = self.convert_sph_xy(pair,r=radius)
+        fs = int(self.marker_size*500)
+        plt.text(xy[0], xy[1], text, ha="center", size=fs)
+
+    def convert_sph_xy(self, pair, r=1):
+        pair = np.deg2rad(pair)
+        xyz_coords = (r*np.sin(pair[0])*np.cos(pair[1]),
+                    r*np.sin(pair[0])*np.sin(pair[1]),
+                    r*np.cos(pair[0]))
+        if self.projection=='simple':
+            coords = xyz_coords[:2]
+        elif self.projection=='lambert':
+            x,y,z = xyz_coords
+            coords = (x*np.sqrt(1/(1+z)), y*np.sqrt(1/(1+z)))
+        return coords
     def save_dict(self, obj, name):
         with open(name + '.lay', 'wb') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
@@ -282,12 +324,84 @@ class EEGarray(object):
         with open(name + '.lay', 'rb') as f:
             return pickle.load(f)
 
-collection = Head()
+    def reset_topo(self):
+        self.topodist['zz'] = np.zeros(self.topodist['xx'].shape)
+
+    def topoplot(self, adjacency, cov=None): 
+        nchan = adjacency.shape[0]
+        assert nchan==adjacency.shape[1]
+        if cov is None:
+            cov = 0.05*np.eye(2)
+        self.reset_topo()
+        xxx = np.stack((self.topodist['xx'],self.topodist['yy']),axis=-1)
+        for ch in range(nchan):
+            if np.isnan(adjacency[ch,ch])==False:   
+                mu = np.asarray(self.convert_sph_xy(self.pos[ch],1))
+                topo_act = multivariate_normal.pdf(xxx, mean=mu, cov=cov)
+                self.topodist['zz'] += adjacency[ch,ch]*topo_act
+
+    def plot_topoplot(self, adjacency, ax = None):
+        if ax==None:
+            fig, ax = plt.subplots()
+        vmax = np.nanmax(np.abs(self.topodist['zz']))
+        vmin = -vmax
+        im = ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
+                            self.topodist['zz'], vmin=vmin, vmax=vmax, 
+                            cmap='coolwarm')
+        Path = mpath.Path
+        path_data = [
+            (Path.MOVETO, [-1.6793312,0.59860132]),
+            (Path.CURVE4, [8.2715042e-7,1.5]),
+            (Path.CURVE4, [8.2715042e-7,1.5]),
+            (Path.CURVE4, [1.6793312, 0.59860132]),
+            (Path.LINETO, [1.6793312, -0.74550237]),
+            (Path.CURVE4, [1.6793312, -2.43893499]),
+            (Path.CURVE4, [-1.6793312, -2.43893499]),
+            (Path.CURVE4, [-1.6793312,-0.74550237]),
+            (Path.CLOSEPOLY,  [-1.6793312,-0.74550237])]
+        codes, verts = zip(*path_data)
+        path = mpath.Path(verts, codes)
+        patch = mpatches.PathPatch(path, transform=ax.transData)
+        # patch = mpatches.Circle((0, 0), radius=1
+        im.set_clip_path(patch)
+
+    
+    def connect(self, adjacency, symmetric=False):
+        #check for square matrix
+        nchan = adjacency.shape[0]
+        assert nchan==adjacency.shape[1]
+        arrows = []
+        for ch_x in range(nchan):
+            rang = range(ch_x, nchan) if symmetric else range(nchan)
+            for ch_y in rang:
+                if ch_x==ch_y:
+                    continue
+                if np.isnan(adjacency[ch_x,ch_y])==False:
+                    posA = np.asarray(self.convert_sph_xy(self.pos[ch_x],1))
+                    posB = np.asarray(self.convert_sph_xy(self.pos[ch_y],1))
+                    arrows.append(mpatches.FancyArrowPatch(
+                                    posA=posA, posB=posB, fc=self.cmap(adjacency[ch_x,ch_y]), ec="none",
+                                    arrowstyle=mpatches.ArrowStyle.Simple(head_length=1, 
+                                    head_width=.707, tail_width=.1), mutation_scale=.1))#,
+                                    # connectionstyle='angle3'
+                                    # arrowstyle="-|>", mutation_scale=0.1))
+                    # arrows.append(mpatches.Arrow(origin[0], origin[1], delta[0], delta[1]))
+                # print(f'{ch_x},{ch_y}')
+        self.patches = self.patches+arrows
+        PatchCollection.__init__(self, self.patches, match_original=True,
+                                antialiaseds=True)
+
+show_electrodes = True
 fig, ax = plt.subplots()
-ax.add_collection(collection)
-array = EEGarray(electrodes)
+ax.add_collection(Head())
 
-
+array = EEGarray(electrodes, projection='lambert')
+array.topoplot(adjacenty)
+array.plot_topoplot(array.topodist['zz'], ax=ax)
+ax.add_collection(array)
+# array.connect(adjacenty, symmetric=False)
+# if show_electrodes:
+#     ax.add_collection(array)
 plt.axis('equal')
 plt.axis('off')
 plt.tight_layout()
@@ -296,3 +410,39 @@ plt.show()
 
 
 # %%
+import matplotlib.path as mpath
+d="m 23.529017,108.34263 c 16.394724,-10.244561 16.394724,-10.244561 32.789434,-1e-5 v 11.19756 c 0,15.54427 -32.789434,15.54427 -32.789434,0 z"
+# add a path patch
+patches = []
+Path = mpath.Path
+path_data = [
+    (Path.MOVETO, [-1.6793312,0.59860132]),
+    (Path.CURVE4, [8.2715042e-7,1.5]),
+    (Path.CURVE4, [8.2715042e-7,1.5]),
+    (Path.CURVE4, [1.6793312, 0.59860132]),
+    (Path.LINETO, [1.6793312, -0.74550237]),
+    (Path.CURVE4, [1.6793312, -2.43893499]),
+    (Path.CURVE4, [-1.6793312, -2.43893499]),
+    (Path.CURVE4, [-1.6793312,-0.74550237]),
+    (Path.CLOSEPOLY,  [-1.6793312,-0.74550237])]
+codes, verts = zip(*path_data)
+path = mpath.Path(verts, codes)
+patch = mpatches.PathPatch(path)
+patches.append(patch)
+patches.append(mpatches.Circle((0,0), 1, fc='red'))
+fig, ax = plt.subplots()
+ax.add_collection(PatchCollection(patches, match_original=True))
+
+pdef = np.asarray([el[1] for el in path_data])
+plt.scatter(pdef[:,0], pdef[:,1], c='red')
+plt.axis('equal')
+plt.axis('off')
+plt.tight_layout()
+
+plt.show()
+#%% 
+"M -1.6793312,-0.59860132 
+C 8.2715042e-7,-1.6479643 8.2715042e-7,-1.6479643 1.6793312,-0.59860237 
+v 1.14697989 
+c 0,1.59221868 -3.3586624,1.59221868 -3.3586624,
+0 z"
