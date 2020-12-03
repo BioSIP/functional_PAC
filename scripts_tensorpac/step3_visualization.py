@@ -4,31 +4,37 @@ import os
 import matplotlib.pyplot as plt 
 from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 
-# f_init = 15
-# f_end = 120
-# f_res = 2
-
-# pac_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/tensorpac'
-# filename = '0_7_20_RD.npy'
-
-# global channel_n
-
-# channel_n = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7',
-#              'C3', 'C4', 'T8', 'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
-#              'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
-
-# p = Pac(f_pha='hres', f_amp=(f_init, f_end, f_res, f_res), dcomplex='hilbert')
-
-# data_subject = np.load(os.path.join(pac_path, filename))
-
-
-
-# plot_connect_hipermatrix(data_subject, (2, 20), (f_init, f_end), filename)
-
-
-
-
-# plot_avg_connectivity(data_subject)
+point_loc = {'Fp1': (-82.5, -19.2, -46.0),
+ 'Fp2': (82.2, -19.2, -46.0) ,
+ 'F7': (53.4, 66.8, -10.3)  ,
+ 'F3': (-67.2, 39.9, -47.9) ,
+ 'Fz': (-61.8, 46.0, 16.2)  ,
+ 'F4': (-26.4, 54.6, 57.8)  ,
+ 'F8': (28.3, 55.2, 57.1)   ,
+ 'FC5': (69.1, 40.3, -48.4)  ,
+ 'FC1': (-77.4, 13.5, -10.7) ,
+ 'FC2': (-57.7, 21.8, 53.2)  ,
+ 'FC6': (0.4, 26.3, 85.0)    ,
+ 'T7': (78.4, 14.8, -10.9)  ,
+ 'C3': (-82.3, -15.2, -46.3),
+ 'C4': (-34.7, -9.6, 86.0)  ,
+ 'T8': (36.1, -9.2, 84.7)   ,
+ 'TP9': (80.0, -12.2, 28.0)  ,
+ 'CP5': (82.0, -15.7, -46.3) ,
+ 'CP1': (-81.3, -44.1, -6.8) ,
+ 'CP2': (-60.9, -45.1, 62.9) ,
+ 'CP6': (0.4, -45.4, 95.3)   ,
+ 'TP10': (63.8, -44.7, 62.9)  ,
+ 'P7': (82.0, -43.7, -6.8)  ,
+ 'P3': (-70.0, -70.7, -39.3),
+ 'Pz': (-64.5, -73.1, 27.2) ,
+ 'P4': (-27.4, -77.2, 72.3) ,
+ 'P8': (30.6, -77.1, 73.5)  ,
+ 'PO9': (65.1, -72.8, 26.9)  ,
+ 'PO10': (35.3, -96.7, 34.9)  ,
+ 'O1': (47.8, -95.3, 20.8)  ,
+ 'Oz': (53.4, -93.6, 2.6)   ,
+ 'O2': (52.7, -94.0, -34.1) }
 
 #%%
 
@@ -119,7 +125,9 @@ class BandConnectivityPlotter(object):
                                 figsize=(6*len(bands_phase),6*len(bands_amp)))
         fpha_ref = np.linspace(f_pha[0], f_pha[1], hipermatrix.shape[-1])
         famp_ref = np.linspace(f_amp[0], f_amp[1], hipermatrix.shape[-2])
+        bc = []
         for i, fas in enumerate(bands_phase):
+            cosa = []
             for j, famp in enumerate(bands_amp):
                 row = len(bands_amp)-1-j
                 limits_phas = self.bands[fas]
@@ -137,6 +145,9 @@ class BandConnectivityPlotter(object):
                 ax[row, i].set_xticks(range(self.n_chan))
                 ax[row, i].set_yticklabels(self.channels)
                 ax[row, i].set_xticklabels(self.channels,rotation=60)
+                cosa.append(matrix.T) 
+            bc.append(cosa)
+        return bc 
         
     def display_avg_connectivity(self, hipermatrix):
         _, ax  = plt.subplots(figsize=(7,7))
@@ -178,11 +189,20 @@ class BandConnectivityPlotter(object):
                 if giving_phase==0:
                     ax[receiving_amp, giving_phase].set_ylabel(self.channels[receiving_amp])
                 else:
-                    ax[receiving_amp, giving_phase].set_yticklabels([])
+                    ax[recezs<iving_amp, giving_phase].set_yticklabels([])
         #plt.tight_layout()
         plt.show()
         fig.savefig(f'{filename}.pdf')
 
+#%% 
+class MNE_connectivity(object):
+    def __init__(self):
+        import mne 
+        from mne.channels.montage import get_builtin_montages
+        montage = mne.channels.make_standard_montage('standard_1020')
+
+
+    
 
 
 #%% 
@@ -202,7 +222,7 @@ if __name__ == "__main__":
 
     plotter = BandConnectivityPlotter()
 
-    plotter.display_band_connectivity(data_sig, f_pha=(2,20), f_amp=(15,120))
+    mm = plotter.display_band_connectivity(data_sig, f_pha=(2,20), f_amp=(15,120))
     # %%
     plotter = BandConnectivityPlotter()
     plotter.plot_pac(data_sig, channels=[(15,0), (1,10)])
