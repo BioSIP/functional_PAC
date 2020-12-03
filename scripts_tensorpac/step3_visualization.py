@@ -229,4 +229,38 @@ if __name__ == "__main__":
 
     #%%
     plotter.plot_connect_hipermatrix(data_sig, filename='prueba')
-    # %%
+
+
+#%%  
+import matplotlib.pyplot as plt 
+import matplotlib.patches as mpatches
+from matplotlib.collections import PatchCollection
+import numpy as np
+
+class Head(PatchCollection):
+    def __init__(self, pos = (0,0)):
+        self.patches = []
+        self.head = mpatches.Circle(pos, 1, ec="black", fc='white')
+        self.ear_L = mpatches.Ellipse((-1,0), 0.2, 0.5)
+        self.ear_R = mpatches.Ellipse((1,0), 0.2, 0.5)
+        self.nose = mpatches.RegularPolygon((0,1), 3, 0.2)
+        self.patches.append(self.ear_L)
+        self.patches.append(self.ear_R)
+        self.patches.append(self.nose)
+        self.patches.append(self.head)
+        PatchCollection.__init__(self, self.patches, edgecolors='black', 
+                                facecolors='white', linewidths=1,
+                                antialiaseds=True)
+
+collection = Head()
+fig, ax = plt.subplots()
+ax.add_collection(collection)
+
+plt.axis('equal')
+plt.axis('off')
+plt.tight_layout()
+
+plt.show()
+
+
+# %%
