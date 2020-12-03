@@ -167,9 +167,9 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         # label connected clusters
         label_arr = np.zeros(stat.shape)
         pval_arr = np.empty(stat.shape)*np.nan
-        for ch_x in range(stat.shape[0]):
-            for ch_y in range(stat.shape[1]):
-                arr, n_labs = label(bin_stat[ch_x, ch_y])
+        for ch_pha in range(stat.shape[0]):
+            for ch_amp in range(stat.shape[1]):
+                arr, n_labs = label(bin_stat[ch_pha, ch_amp])
                 # keep only supra-threshold clusters: 
                 idx_sel = self.supra_threshold(arr)
                 if len(idx_sel>1):
@@ -178,13 +178,13 @@ class ClusterBasedPermutationTesting(PermutationTesting):
                         select = arr==ix
                         cluster_lab = np.zeros(arr.shape)
                         cluster_lab[select] = ix
-                        pval_arr[ch_x, ch_y][select] = 0
-                        label_arr[ch_x, ch_y] += cluster_lab
+                        pval_arr[ch_pha, ch_amp][select] = 0
+                        label_arr[ch_pha, ch_amp] += cluster_lab
                         # compute cluster-based statistic: 
-                        cluster_stat = stat[ch_x, ch_y][select].sum()
+                        cluster_stat = stat[ch_pha, ch_amp][select].sum()
                         with Parallel(n_jobs=self.n_jobs, prefer="threads", verbose=20) as parallel:
                             parallel(
-                                delayed(self.permutation_testing)(X[:,ch_x,ch_y], y, cluster_stat, pval_arr[ch_x,ch_y], select) for i in range(self.n_iter))
+                                delayed(self.permutation_testing)(X[:,ch_pha,ch_amp], y, cluster_stat, pval_arr[ch_pha,ch_amp], select) for i in range(self.n_iter))
 
         pval_arr = pval_arr/self.n_iter
         if self.output=='quantile' or self.output=='both':
@@ -237,3 +237,8 @@ pvalu, quantile = cbpt.fit(X,y)
 np.save('pvalue.npy', pvalu)
 np.save('quantile.npy', quantile)
 
+
+
+#%% 
+from step3_visualization import BandConnectivityPlotter
+plotter = BandConnectivityPlotter()
