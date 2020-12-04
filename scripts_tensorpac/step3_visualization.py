@@ -189,7 +189,7 @@ class BandConnectivityPlotter(object):
                 if giving_phase==0:
                     ax[receiving_amp, giving_phase].set_ylabel(self.channels[receiving_amp])
                 else:
-                    ax[recezs<iving_amp, giving_phase].set_yticklabels([])
+                    ax[receiving_amp, giving_phase].set_yticklabels([])
         #plt.tight_layout()
         plt.show()
         fig.savefig(f'{filename}.pdf')
@@ -242,7 +242,7 @@ path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PA
 
 data = np.load(os.path.join(path, 'quantile_p1e4_ct30.npy'))
 
-th = 0.05/(2*31*31)
+th = 0.05/(2*31*31*2)
 data_sig = data.copy()
 data_sig[(data>th) & (data<1-th)] = np.nan
 
@@ -404,6 +404,7 @@ class EEGarray(PatchCollection):
     
     def plot_connectivity(self, adjacency, symmetric=False, ax=None):
         #check for square matrix
+        adjacency = adjacency.copy() # safeguard for pointer passing
         if ax==None:
             ax = plt.gca()
         nchan = adjacency.shape[0]
