@@ -207,7 +207,7 @@ if __name__ == "__main__":
 
     data = np.load(os.path.join(path, 'quantile.npy'))
 
-    th = 0.025
+    th = 0.005
     data_sig = data.copy()
     data_sig[(data>th) & (data<1-th)] = np.nan
 
@@ -369,31 +369,32 @@ class EEGarray(PatchCollection):
         vmin = -vmax
         im = ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
                             self.topodist['zz'], vmin=vmin, vmax=vmax, 
-                            cmap='coolwarm')
+                            cmap='coolwarm', antialiaseds=True)#, shading='gouraud')
         if area==None:
             patch = mpatches.Circle((0, 0), radius=1)
         elif area=='lambert':
             path_data = [
-                (mpath.Path.MOVETO, [-1.5,0.59860132]),
-                (mpath.Path.CURVE4, [8.2715042e-7,1.5]),
-                (mpath.Path.CURVE4, [8.2715042e-7,1.5]),
-                (mpath.Path.CURVE4, [1.5, 0.59860132]),
-                (mpath.Path.LINETO, [1.5, -0.5]),
+                (mpath.Path.MOVETO, [-1.5,0.6]),
+                (mpath.Path.CURVE4, [0,1.5]),
+                (mpath.Path.CURVE4, [0,1.5]),
+                (mpath.Path.CURVE4, [1.5, 0.6]),
+                (mpath.Path.LINETO, [1.5, -0.1]),
                 (mpath.Path.CURVE4, [1.5, -2]),
                 (mpath.Path.CURVE4, [-1.5, -2]),
-                (mpath.Path.CURVE4, [-1.5,-0.5]),
+                (mpath.Path.CURVE4, [-1.5,-0.1]),
                 (mpath.Path.CLOSEPOLY,  [-1.5,-0.5])]
             codes, verts = zip(*path_data)
             path = mpath.Path(verts, codes)
             patch = mpatches.PathPatch(path, transform=ax.transData)
         im.set_clip_path(patch)
-
     
     def connect(self, adjacency, symmetric=False):
         #check for square matrix
         nchan = adjacency.shape[0]
         assert nchan==adjacency.shape[1]
         arrows = []
+        total = np.sum(np.isnan(adjacency)==False)
+        ix = 0
         for ch_x in range(nchan):
             rang = range(ch_x, nchan) if symmetric else range(nchan)
             for ch_y in rang:
@@ -403,13 +404,12 @@ class EEGarray(PatchCollection):
                     posA = np.asarray(self.convert_sph_xy(self.pos[ch_x],1))
                     posB = np.asarray(self.convert_sph_xy(self.pos[ch_y],1))
                     arrows.append(mpatches.FancyArrowPatch(
-                                    posA=posA, posB=posB, fc=self.cmap(adjacency[ch_x,ch_y]), ec="none",
+                                    posA=posA, posB=posB, fc=self.cmap(ix), ec="none",
                                     arrowstyle=mpatches.ArrowStyle.Simple(head_length=1, 
                                     head_width=.707, tail_width=.1), mutation_scale=.1))#,
                                     # connectionstyle='angle3'
                                     # arrowstyle="-|>", mutation_scale=0.1))
-                    # arrows.append(mpatches.Arrow(origin[0], origin[1], delta[0], delta[1]))
-                # print(f'{ch_x},{ch_y}')
+                    ix = ix + 1/total
         self.patches = self.patches+arrows
         PatchCollection.__init__(self, self.patches, match_original=True,
                                 antialiaseds=True)
@@ -417,14 +417,16 @@ class EEGarray(PatchCollection):
 show_electrodes = True
 fig, ax = plt.subplots()
 
+adjacenty = mm[1][1]
+
 array = EEGarray(electrodes, projection='lambert')
 array.topoplot(adjacenty)
 array.plot_topoplot(array.topodist['zz'], ax=ax, area='lambert')
-ax.add_collection(array)
+# ax.add_collection(array)
 ax.add_collection(Head())
-# array.connect(adjacenty, symmetric=False)
-# if show_electrodes:
-#     ax.add_collection(array)
+array.connect(adjacenty, symmetric=False)
+if show_electrodes:
+    ax.add_collection(array)
 plt.axis('equal')
 plt.axis('off')
 plt.tight_layout()
