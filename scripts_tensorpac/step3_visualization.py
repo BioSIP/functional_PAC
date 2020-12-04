@@ -284,7 +284,7 @@ class Head(PatchCollection):
 
 
 class EEGarray(PatchCollection):
-    def __init__(self, electrodes, layout='ten_twenty', marker_size=0.021,
+    def __init__(self, electrodes, layout='ten_twenty', marker_size=0.03,
                         projection='simple'):
         self.layout = layout
         self.marker_size = marker_size
@@ -324,7 +324,7 @@ class EEGarray(PatchCollection):
     def label(self, pair, text):
         radius = 1.15#+0.05*np.sin(np.abs(np.deg2rad(pair[0])))
         xy = self.convert_sph_xy(pair,r=radius)
-        fs = int(self.marker_size*500)
+        fs = int(self.marker_size*400)
         plt.text(xy[0], xy[1], text, ha="center", size=fs)
 
     def convert_sph_xy(self, pair, r=1):
@@ -370,9 +370,7 @@ class EEGarray(PatchCollection):
         im = ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
                             self.topodist['zz'], vmin=vmin, vmax=vmax, 
                             cmap='coolwarm', antialiaseds=True)#, shading='gouraud')
-        if area==None:
-            patch = mpatches.Circle((0, 0), radius=1)
-        elif area=='lambert':
+        if area=='lambert' and self.projection=='lambert':
             path_data = [
                 (mpath.Path.MOVETO, [-1.5,0.6]),
                 (mpath.Path.CURVE4, [0,1.5]),
@@ -386,13 +384,17 @@ class EEGarray(PatchCollection):
             codes, verts = zip(*path_data)
             path = mpath.Path(verts, codes)
             patch = mpatches.PathPatch(path, transform=ax.transData)
+        else:
+            patch = mpatches.Circle((0, 0), radius=1, transform=ax.transData)
         im.set_clip_path(patch)
     
-    def connect(self, adjacency, symmetric=False):
+    def plot_connectivity(self, adjacency, symmetric=False, ax=None):
         #check for square matrix
+        if ax==None:
+            ax = plt.gca()
         nchan = adjacency.shape[0]
         assert nchan==adjacency.shape[1]
-        arrows = []
+        # arrows = []
         total = np.sum(np.isnan(adjacency)==False)
         ix = 0
         for ch_x in range(nchan):
@@ -401,73 +403,48 @@ class EEGarray(PatchCollection):
                 if ch_x==ch_y:
                     continue
                 if np.isnan(adjacency[ch_x,ch_y])==False:
+                    arws = '-|>'
+                    if np.isnan(adjacency[ch_y,ch_x])==False:
+                        symmetric = True
+                        arws = '<|-|>'
                     posA = np.asarray(self.convert_sph_xy(self.pos[ch_x],1))
                     posB = np.asarray(self.convert_sph_xy(self.pos[ch_y],1))
-                    arrows.append(mpatches.FancyArrowPatch(
-                                    posA=posA, posB=posB, fc=self.cmap(ix), ec="none",
-                                    arrowstyle=mpatches.ArrowStyle.Simple(head_length=1, 
-                                    head_width=.707, tail_width=.1), mutation_scale=.1))#,
+                    cmap = cm.get_cmap('jet') # correct for colors in arrows
+                    ax.annotate("",
+                        xy=posA, xycoords='data',
+                        xytext=posB, textcoords='data',
+                        arrowprops=dict(arrowstyle=arws, color=cmap(ix), 
+                                    fc=cmap(ix), ec=cmap(ix)))
+                    # arrows.append(mpatches.ConnectionPatch(
+                    #     xyA=posA, xyB=posB, coordsA='data', axesA=plt.gca(), 
+                    #     axesB=plt.gca(), arrowstyle='-|>', fc=cmap(ix), ec=cmap(ix)
+                    # ))
+                    # arrows.append(mpatches.FancyArrowPatch(
+                    #                 posA=posA, posB=posB, fc=cmap(ix), ec=cmap(ix),
+                                    # arrowstyle=mpatches.ArrowStyle.Simple(head_length=1, 
+                                    # head_width=.707, tail_width=.1), mutation_scale=.1))#,
                                     # connectionstyle='angle3'
-                                    # arrowstyle="-|>", mutation_scale=0.1))
+                                    # arrowstyle="-|>", mutation_scale=.2))
                     ix = ix + 1/total
-        self.patches = self.patches+arrows
-        PatchCollection.__init__(self, self.patches, match_original=True,
-                                antialiaseds=True)
+        # self.patches = self.patches+arrows
+        # PatchCollection.__init__(self, self.patches, match_original=True,
+        #                         antialiaseds=True)
 
 show_electrodes = True
 fig, ax = plt.subplots()
 
-adjacenty = mm[1][1]
+adjacenty = mm[1][2]
 
-array = EEGarray(electrodes, projection='lambert')
+array = EEGarray(electrodes, projection='lambert', marker_size=0.03)
 array.topoplot(adjacenty)
 array.plot_topoplot(array.topodist['zz'], ax=ax, area='lambert')
-# ax.add_collection(array)
-ax.add_collection(Head())
-array.connect(adjacenty, symmetric=False)
 if show_electrodes:
     ax.add_collection(array)
+ax.add_collection(Head())
+array.plot_connectivity(adjacenty, symmetric=False, ax=ax)
 plt.axis('equal')
 plt.axis('off')
 plt.tight_layout()
 
 plt.show()
 
-
-# %%
-import matplotlib.path as mpath
-d="m 23.529017,108.34263 c 16.394724,-10.244561 16.394724,-10.244561 32.789434,-1e-5 v 11.19756 c 0,15.54427 -32.789434,15.54427 -32.789434,0 z"
-# add a path patch
-patches = []
-Path = mpath.Path
-path_data = [
-    (Path.MOVETO, [-1.6793312,0.59860132]),
-    (Path.CURVE4, [8.2715042e-7,1.5]),
-    (Path.CURVE4, [8.2715042e-7,1.5]),
-    (Path.CURVE4, [1.6793312, 0.59860132]),
-    (Path.LINETO, [1.6793312, -0.74550237]),
-    (Path.CURVE4, [1.6793312, -2.43893499]),
-    (Path.CURVE4, [-1.6793312, -2.43893499]),
-    (Path.CURVE4, [-1.6793312,-0.74550237]),
-    (Path.CLOSEPOLY,  [-1.6793312,-0.74550237])]
-codes, verts = zip(*path_data)
-path = mpath.Path(verts, codes)
-patch = mpatches.PathPatch(path)
-patches.append(patch)
-patches.append(mpatches.Circle((0,0), 1, fc='red'))
-fig, ax = plt.subplots()
-ax.add_collection(PatchCollection(patches, match_original=True))
-
-pdef = np.asarray([el[1] for el in path_data])
-plt.scatter(pdef[:,0], pdef[:,1], c='red')
-plt.axis('equal')
-plt.axis('off')
-plt.tight_layout()
-
-plt.show()
-#%% 
-"M -1.6793312,-0.59860132 
-C 8.2715042e-7,-1.6479643 8.2715042e-7,-1.6479643 1.6793312,-0.59860237 
-v 1.14697989 
-c 0,1.59221868 -3.3586624,1.59221868 -3.3586624,
-0 z"
