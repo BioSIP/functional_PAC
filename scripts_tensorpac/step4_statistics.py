@@ -238,7 +238,3 @@ np.save('pvalue.npy', pvalu)
 np.save('quantile.npy', quantile)
 
 
-
-#%% 
-from step3_visualization import BandConnectivityPlotter
-plotter = BandConnectivityPlotter()
