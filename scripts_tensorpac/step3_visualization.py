@@ -239,6 +239,7 @@ ax.set_xticklabels(electrodes,rotation=60)
 #%%  
 import matplotlib.pyplot as plt 
 import matplotlib.patches as mpatches
+import matplotlib.path as mpath
 from matplotlib.collections import PatchCollection
 import numpy as np
 from matplotlib import cm
@@ -248,18 +249,39 @@ import pickle
 
 class Head(PatchCollection):
     def __init__(self, pos = (0,0)):
+        self.lineproperties = {'ec': 'black', 'fc': 'none'}
         self.patches = []
-        self.head = mpatches.Circle(pos, 1)
-        self.ear_L = mpatches.Ellipse((-1,0), 0.2, 0.5)
-        self.ear_R = mpatches.Ellipse((1,0), 0.2, 0.5)
-        self.nose = mpatches.RegularPolygon((0,1), 3, 0.2)
+        self.head = mpatches.Circle(pos, 1, **self.lineproperties)
+        self.nose = self.generate_nose()
+        self.ear_L = self.generate_ear(side='left')
+        self.ear_R = self.generate_ear(side='right')
         self.patches.append(self.ear_L)
         self.patches.append(self.ear_R)
         self.patches.append(self.nose)
         self.patches.append(self.head)
-        PatchCollection.__init__(self, self.patches, edgecolors='black', 
-                                facecolors='white', linewidths=1,
-                                antialiaseds=True)
+        PatchCollection.__init__(self, self.patches, linewidths=1,
+                                match_original=True, antialiaseds=True)
+    
+    def generate_ear(self, side='left'):
+        sign = -1 if side=='left' else 1
+        path_data = [
+            (mpath.Path.MOVETO, [sign*np.cos(np.arcsin(0.2)),-0.2]),
+            (mpath.Path.CURVE4, [sign*1.1, -0.3]),
+            (mpath.Path.CURVE4, [sign*1.1, 0.3]),
+            (mpath.Path.CURVE4, [sign*np.cos(np.arcsin(0.2)), 0.2])]
+        codes, verts = zip(*path_data)
+        path = mpath.Path(verts, codes)
+        return mpatches.PathPatch(path, **self.lineproperties)
+
+    def generate_nose(self, side='left'):
+        path_data = [
+            (mpath.Path.MOVETO, [-0.15, np.sin(np.arccos(0.15))]),
+            (mpath.Path.LINETO, [0, 1.2]),
+            (mpath.Path.LINETO, [0.15, np.cos(np.arcsin(0.15))])]
+        codes, verts = zip(*path_data)
+        path = mpath.Path(verts, codes)
+        return mpatches.PathPatch(path, **self.lineproperties)
+
 
 class EEGarray(PatchCollection):
     def __init__(self, electrodes, layout='ten_twenty', marker_size=0.021,
@@ -280,7 +302,7 @@ class EEGarray(PatchCollection):
         zz = np.zeros(xx.shape)
         self.topodist = dict(xx=xx, yy=yy, zz=zz)    
         self.cmap = cm.get_cmap('coolwarm')
-        PatchCollection.__init__(self, self.patches, antialiaseds=True)
+        PatchCollection.__init__(self, self.patches, match_original=True, antialiaseds=True)
 
     def get_positions(self, electrodes):
         path_data = '../data/'
@@ -340,7 +362,7 @@ class EEGarray(PatchCollection):
                 topo_act = multivariate_normal.pdf(xxx, mean=mu, cov=cov)
                 self.topodist['zz'] += adjacency[ch,ch]*topo_act
 
-    def plot_topoplot(self, adjacency, ax = None):
+    def plot_topoplot(self, adjacency, ax=None, area=None):
         if ax==None:
             fig, ax = plt.subplots()
         vmax = np.nanmax(np.abs(self.topodist['zz']))
@@ -348,21 +370,22 @@ class EEGarray(PatchCollection):
         im = ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
                             self.topodist['zz'], vmin=vmin, vmax=vmax, 
                             cmap='coolwarm')
-        Path = mpath.Path
-        path_data = [
-            (Path.MOVETO, [-1.6793312,0.59860132]),
-            (Path.CURVE4, [8.2715042e-7,1.5]),
-            (Path.CURVE4, [8.2715042e-7,1.5]),
-            (Path.CURVE4, [1.6793312, 0.59860132]),
-            (Path.LINETO, [1.6793312, -0.74550237]),
-            (Path.CURVE4, [1.6793312, -2.43893499]),
-            (Path.CURVE4, [-1.6793312, -2.43893499]),
-            (Path.CURVE4, [-1.6793312,-0.74550237]),
-            (Path.CLOSEPOLY,  [-1.6793312,-0.74550237])]
-        codes, verts = zip(*path_data)
-        path = mpath.Path(verts, codes)
-        patch = mpatches.PathPatch(path, transform=ax.transData)
-        # patch = mpatches.Circle((0, 0), radius=1
+        if area==None:
+            patch = mpatches.Circle((0, 0), radius=1)
+        elif area=='lambert':
+            path_data = [
+                (mpath.Path.MOVETO, [-1.5,0.59860132]),
+                (mpath.Path.CURVE4, [8.2715042e-7,1.5]),
+                (mpath.Path.CURVE4, [8.2715042e-7,1.5]),
+                (mpath.Path.CURVE4, [1.5, 0.59860132]),
+                (mpath.Path.LINETO, [1.5, -0.5]),
+                (mpath.Path.CURVE4, [1.5, -2]),
+                (mpath.Path.CURVE4, [-1.5, -2]),
+                (mpath.Path.CURVE4, [-1.5,-0.5]),
+                (mpath.Path.CLOSEPOLY,  [-1.5,-0.5])]
+            codes, verts = zip(*path_data)
+            path = mpath.Path(verts, codes)
+            patch = mpatches.PathPatch(path, transform=ax.transData)
         im.set_clip_path(patch)
 
     
@@ -393,12 +416,12 @@ class EEGarray(PatchCollection):
 
 show_electrodes = True
 fig, ax = plt.subplots()
-ax.add_collection(Head())
 
 array = EEGarray(electrodes, projection='lambert')
 array.topoplot(adjacenty)
-array.plot_topoplot(array.topodist['zz'], ax=ax)
+array.plot_topoplot(array.topodist['zz'], ax=ax, area='lambert')
 ax.add_collection(array)
+ax.add_collection(Head())
 # array.connect(adjacenty, symmetric=False)
 # if show_electrodes:
 #     ax.add_collection(array)
