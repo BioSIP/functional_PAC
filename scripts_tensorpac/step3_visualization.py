@@ -238,6 +238,11 @@ ax.set_yticklabels(electrodes)
 ax.set_xticklabels(electrodes,rotation=60)
 #%% 
 
+electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 
+                            'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'T8', 'TP9', 
+                            'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
+                            'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+
 path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PAC/results/statistics'
 
 data = np.load(os.path.join(path, 'quantile_p1e4_ct30.npy'))
@@ -420,6 +425,7 @@ class EEGarray(PatchCollection):
                 if np.isnan(adjacency[ch_x,ch_y])==False:
                     arws = '-|>'
                     if np.isnan(adjacency[ch_y,ch_x])==False:
+                        # TODO: check for bilateral 
                         symmetric = True
                         arws = '<|-|>'
                     posA = np.asarray(self.convert_sph_xy(self.pos[ch_x],1))
@@ -446,21 +452,24 @@ class EEGarray(PatchCollection):
         #                         antialiaseds=True)
 
 show_electrodes = True
+fig, axes = plt.subplots(2, 4, figsize=(15,8))
 for i, band in enumerate(['Delta', 'Theta', 'Alpha', 'Beta']):
-    fig, ax = plt.subplots()
-    adjacenty = mm[i][1]
-
-    array = EEGarray(electrodes, projection='lambert', marker_size=0.03)
-    array.topoplot(adjacenty)
-    array.plot_topoplot(array.topodist['zz'], ax=ax, area='lambert')
-    if show_electrodes:
-        ax.add_collection(array)
-    ax.add_collection(Head())
-    array.plot_connectivity(adjacenty, symmetric=False, ax=ax)
-    plt.axis('equal')
-    plt.axis('off')
-    plt.tight_layout()
-    plt.title(f'{band}-Gamma')
-    plt.show()
-    fig.savefig(f'{band}_gamma_ct30_p1e4.png')
+    for j, bj in enumerate(['Gamma', 'Epsilon']):
+        adjacenty = mm[i][j+1]
+        
+        array = EEGarray(electrodes, projection='lambert', marker_size=0.03)
+        array.topoplot(adjacenty)
+        array.plot_topoplot(array.topodist['zz'], ax=axes[j][i], area='lambert')
+        #if show_electrodes:
+        axes[j][i].add_collection(array)
+        axes[j][i].add_collection(Head())
+        array.plot_connectivity(adjacenty, symmetric=False, ax=axes[j][i])
+        axes[j][i].set_aspect(1)
+        axes[j][i].set_ylim(-1.5, 1.3)
+        axes[j][i].set_xlim(-1.5, 1.5)
+        axes[j][i].axis('off')
+        axes[j][i].set_title(f'{band}-{bj}')
+plt.show()
+plt.tight_layout()
+# fig.savefig(f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/ct30_p1e4/bonferroni_{band}_gamma_ct30_p1e4.png')
 
