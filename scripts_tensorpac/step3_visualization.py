@@ -219,7 +219,7 @@ if __name__ == "__main__":
     plotter.plot_pac(data_sig, channels=[(15,0), (1,10)])
 
     #%%
-    plotter.plot_connect_hipermatrix(data_sig, filename='prueba')
+    plotter.plot_connect_hipermatrix(data_sig, filename='ct30_p1e4')
 
 #%% 
 
@@ -236,6 +236,19 @@ ax.set_yticks(range(len(electrodes)))
 ax.set_xticks(range(len(electrodes)))
 ax.set_yticklabels(electrodes)
 ax.set_xticklabels(electrodes,rotation=60)
+#%% 
+
+path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PAC/results/statistics'
+
+data = np.load(os.path.join(path, 'quantile_p1e4_ct30.npy'))
+
+th = 0.05/(2*31*31)
+data_sig = data.copy()
+data_sig[(data>th) & (data<1-th)] = np.nan
+
+plotter = BandConnectivityPlotter()
+
+mm = plotter.display_band_connectivity(data_sig, f_pha=(2,20), f_amp=(15,120))
 #%%  
 import matplotlib.pyplot as plt 
 import matplotlib.patches as mpatches
@@ -367,26 +380,27 @@ class EEGarray(PatchCollection):
             fig, ax = plt.subplots()
         vmax = np.nanmax(np.abs(self.topodist['zz']))
         vmin = -vmax
-        im = ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
-                            self.topodist['zz'], vmin=vmin, vmax=vmax, 
-                            cmap='coolwarm', antialiaseds=True)#, shading='gouraud')
-        if area=='lambert' and self.projection=='lambert':
-            path_data = [
-                (mpath.Path.MOVETO, [-1.5,0.6]),
-                (mpath.Path.CURVE4, [0,1.5]),
-                (mpath.Path.CURVE4, [0,1.5]),
-                (mpath.Path.CURVE4, [1.5, 0.6]),
-                (mpath.Path.LINETO, [1.5, -0.1]),
-                (mpath.Path.CURVE4, [1.5, -2]),
-                (mpath.Path.CURVE4, [-1.5, -2]),
-                (mpath.Path.CURVE4, [-1.5,-0.1]),
-                (mpath.Path.CLOSEPOLY,  [-1.5,-0.5])]
-            codes, verts = zip(*path_data)
-            path = mpath.Path(verts, codes)
-            patch = mpatches.PathPatch(path, transform=ax.transData)
-        else:
-            patch = mpatches.Circle((0, 0), radius=1, transform=ax.transData)
-        im.set_clip_path(patch)
+        if vmin-vmax!=0:
+            im = ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
+                                self.topodist['zz'], vmin=vmin, vmax=vmax, 
+                                cmap='coolwarm', antialiaseds=True)#, shading='gouraud')
+            if area=='lambert' and self.projection=='lambert':
+                path_data = [
+                    (mpath.Path.MOVETO, [-1.5,0.6]),
+                    (mpath.Path.CURVE4, [0,1.5]),
+                    (mpath.Path.CURVE4, [0,1.5]),
+                    (mpath.Path.CURVE4, [1.5, 0.6]),
+                    (mpath.Path.LINETO, [1.5, -0.1]),
+                    (mpath.Path.CURVE4, [1.5, -2]),
+                    (mpath.Path.CURVE4, [-1.5, -2]),
+                    (mpath.Path.CURVE4, [-1.5,-0.1]),
+                    (mpath.Path.CLOSEPOLY,  [-1.5,-0.5])]
+                codes, verts = zip(*path_data)
+                path = mpath.Path(verts, codes)
+                patch = mpatches.PathPatch(path, transform=ax.transData)
+            else:
+                patch = mpatches.Circle((0, 0), radius=1, transform=ax.transData)
+            im.set_clip_path(patch)
     
     def plot_connectivity(self, adjacency, symmetric=False, ax=None):
         #check for square matrix
@@ -431,20 +445,21 @@ class EEGarray(PatchCollection):
         #                         antialiaseds=True)
 
 show_electrodes = True
-fig, ax = plt.subplots()
+for i, band in enumerate(['Delta', 'Theta', 'Alpha', 'Beta']):
+    fig, ax = plt.subplots()
+    adjacenty = mm[i][1]
 
-adjacenty = mm[1][2]
-
-array = EEGarray(electrodes, projection='lambert', marker_size=0.03)
-array.topoplot(adjacenty)
-array.plot_topoplot(array.topodist['zz'], ax=ax, area='lambert')
-if show_electrodes:
-    ax.add_collection(array)
-ax.add_collection(Head())
-array.plot_connectivity(adjacenty, symmetric=False, ax=ax)
-plt.axis('equal')
-plt.axis('off')
-plt.tight_layout()
-
-plt.show()
+    array = EEGarray(electrodes, projection='lambert', marker_size=0.03)
+    array.topoplot(adjacenty)
+    array.plot_topoplot(array.topodist['zz'], ax=ax, area='lambert')
+    if show_electrodes:
+        ax.add_collection(array)
+    ax.add_collection(Head())
+    array.plot_connectivity(adjacenty, symmetric=False, ax=ax)
+    plt.axis('equal')
+    plt.axis('off')
+    plt.tight_layout()
+    plt.title(f'{band}-Gamma')
+    plt.show()
+    fig.savefig(f'{band}_gamma_ct30_p1e4.png')
 
