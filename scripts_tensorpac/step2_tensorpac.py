@@ -103,7 +103,7 @@ if __name__ == "__main__":
             with open(lock_filename_path, 'w') as fp:
                 pass
             bar.set_description(f'Subject {subject_id}_{name} PAC')
-            processed_files.append(subject_id+"_"+name)
+            processed_files.append(f'{subject_id}_{name}')
             # tamaños:
             size_pha, size_amp = 50, len(np.arange(f_init, f_end, f_res)) - 1
 
