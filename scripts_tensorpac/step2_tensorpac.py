@@ -6,7 +6,7 @@ import argparse
 import matplotlib.pyplot as plt
 from itertools import permutations
 from scipy import signal
-
+import socket
 
 def preprocessing(data, ref_channel=31, fs=500, cut=500, normalization=True, filter=True):
     """Signal preprocessing
@@ -80,6 +80,7 @@ if __name__ == "__main__":
     if args.reverse:
         files.sort(key=lambda i: i.split("_")[3], reverse=True)
     bar = tqdm(files)
+    processed_files = []
     for filename in bar:
         filepath = os.path.join(path, filename)
         data = np.load(filepath)
@@ -101,8 +102,8 @@ if __name__ == "__main__":
                 continue
             with open(lock_filename_path, 'w') as fp:
                 pass
-            bar.set_description(f'Subject {subject_id} PAC')
-
+            bar.set_description(f'Subject {subject_id+"_"+name} PAC')
+            processed_files.append(subject_id+"_"+name)
             # tamaños:
             size_pha, size_amp = 50, len(np.arange(f_init, f_end, f_res)) - 1
 
@@ -126,6 +127,8 @@ if __name__ == "__main__":
 
             np.save(os.path.join(save_path, f'{subject_id}_{name}.npy'), subject_pac)
             os.remove(lock_filename_path)
+    with open(os.path.join(save_path,"{}_processed.txt".format(socket.gethostname())), "w") as output:
+        output.write(str(processed_files))
 # %%
 # amplitudes.shape
 # subject_id = 0
