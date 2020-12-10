@@ -8,19 +8,20 @@ from scipy.stats import ttest_ind
 from scipy.ndimage import label
 from scipy.stats import rankdata
 
-def load_subgroup(path, stimulus=2, group='C', age=7, purge=False):
+def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None):
     filenames = [fi for fi in os.listdir(descriptor_path) if fi.endswith('npy')]
     r = re.compile(f'\d*_{age}_{stimulus}_{group}.npy')
     filenames_r = list(filter(r.match, filenames))
     N = len(filenames_r)
     data = np.zeros((N, len(channel_n), len(channel_n), 52, 50))
     for i,fil in enumerate(filenames_r):
+        defin = np.load(os.path.join(path, fil))
+        if nan is not None:
+            defin[np.isnan(defin)] = nan
         if purge: 
-            pac = PAC_object(np.load(os.path.join(path, fil)), channel_n)
+            pac = PAC_object(defin, channel_n)
             pac.purge_decomposition()
             defin = pac.purged_mat
-        else:
-            defin = np.load(os.path.join(path, fil))
         data[i] = defin
     return data
 
@@ -277,8 +278,8 @@ channel_n = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'F
 
 descriptor_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/tensorpac'
 
-datos_ctl = load_subgroup(descriptor_path, group='C', stimulus=2, purge=True)
-datos_dlx = load_subgroup(descriptor_path, group='RD', stimulus=2, purge=True)
+datos_ctl = load_subgroup(descriptor_path, group='C', stimulus=2, purge=True, nan=0)
+datos_dlx = load_subgroup(descriptor_path, group='RD', stimulus=2, purge=True, nan=0)
 
 X = np.r_[datos_ctl, datos_dlx]
 y = np.r_[np.ones(datos_ctl.shape[0]), np.zeros(datos_dlx.shape[0])]
