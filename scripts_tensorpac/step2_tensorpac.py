@@ -42,6 +42,7 @@ def preprocessing(data, ref_channel=31, fs=500, cut=500, normalization=True, fil
             if filter:
                 batch_data[subject, channel, :] = signal.sosfilt(sos_lp, batch_data[subject, channel, :])
                 batch_data[subject, channel, :] = signal.sosfilt(sos_hp, batch_data[subject, channel, :])
+    batch_data[np.isnan(batch_data)] = np.random.normal(size=batch_data[np.isnan(batch_data)].shape)
     return batch_data[:, :ref_channel, :]
 
 
