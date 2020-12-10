@@ -1,3 +1,4 @@
+#%% 
 import pickle
 from scipy.stats import multivariate_normal
 from matplotlib import cm
@@ -233,38 +234,38 @@ if __name__ == "__main__":
 
 # %%
 
-electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
-                            'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'T8', 'TP9',
-                            'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
-                            'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+    electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
+                                'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'T8', 'TP9',
+                                'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
+                                'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
 
-adjacenty = np.random.randn(len(electrPodes), len(electrodes))
-adjacenty[np.abs(adjacenty) < 1.5] = np.nan
-fig, ax = plt.subplots(figsize=(7, 7))
-ax.imshow(adjacenty)
-ax.set_yticks(range(len(electrodes)))
-ax.set_xticks(range(len(electrodes)))
-ax.set_yticklabels(electrodes)
-ax.set_xticklabels(electrodes, rotation=60)
-# %%
+    adjacenty = np.random.randn(len(electrodes), len(electrodes))
+    adjacenty[np.abs(adjacenty) < 1.5] = np.nan
+    fig, ax = plt.subplots(figsize=(7, 7))
+    ax.imshow(adjacenty)
+    ax.set_yticks(range(len(electrodes)))
+    ax.set_xticks(range(len(electrodes)))
+    ax.set_yticklabels(electrodes)
+    ax.set_xticklabels(electrodes, rotation=60)
+    # %%
 
-electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
-                            'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'T8', 'TP9',
-                            'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
-                            'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+    electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
+                                'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'T8', 'TP9',
+                                'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
+                                'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
 
-path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PAC/results/statistics'
+    path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PAC/results/statistics'
 
-data = np.load(os.path.join(path, 'quantile_p1e4_ct30.npy'))
+    data = np.load(os.path.join(path, 'quantile_p1e4_ct10.npy'))
 
-th = 0.05/(2*31*31*2)
-data_sig = data.copy()
-data_sig[(data > th) & (data < 1-th)] = np.nan
+    th = 0.05/(2*31*31*2)
+    data_sig = data.copy()
+    data_sig[(data > th) & (data < 1-th)] = np.nan
 
-plotter = BandConnectivityPlotter()
+    plotter = BandConnectivityPlotter()
 
-mm = plotter.display_band_connectivity(
-    data_sig, f_pha=(2, 20), f_amp=(15, 120))
+    mm = plotter.display_band_connectivity(
+        data_sig, f_pha=(2, 20), f_amp=(15, 120))
 # %%
 
 
@@ -460,25 +461,27 @@ class EEGarray(PatchCollection):
         #                         antialiaseds=True)
 
 
-show_electrodes = True
-fig, axes = plt.subplots(2, 4, figsize=(15, 8))
-for i, band in enumerate(['Delta', 'Theta', 'Alpha', 'Beta']):
-    for j, bj in enumerate(['Gamma', 'Epsilon']):
-        adjacenty = mm[i][j+1]
+if __name__ == "__main__":
+# %%
+    show_electrodes = True
+    fig, axes = plt.subplots(2, 4, figsize=(15, 8))
+    for i, band in enumerate(['Delta', 'Theta', 'Alpha', 'Beta']):
+        for j, bj in enumerate(['Gamma', 'Epsilon']):
+            adjacenty = mm[i][j+1]
 
-        array = EEGarray(electrodes, projection='lambert',
-                         marker_size=0.03, ax=axes[j][i])
-        array.topoplot(adjacenty)
-        array.plot_topoplot(array.topodist['zz'], area='lambert')
-        # if show_electrodes:
-        axes[j][i].add_collection(Head())
-        array.plot_connectivity(adjacenty, symmetric=False)
-        axes[j][i].set_aspect(1)
-        axes[j][i].set_ylim(-1.5, 1.3)
-        axes[j][i].set_xlim(-1.5, 1.5)
-        axes[j][i].axis('off')
-        axes[j][i].set_title(f'{band}-{bj}')
-plt.show()
-plt.tight_layout()
-fig.savefig(
-    f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/ct30_p1e4/bonferroni_{band}_gamma_ct30_p1e4.pdf')
+            array = EEGarray(electrodes, projection='lambert',
+                            marker_size=0.03, ax=axes[j][i])
+            array.topoplot(adjacenty)
+            array.plot_topoplot(array.topodist['zz'], area='lambert')
+            # if show_electrodes:
+            axes[j][i].add_collection(Head())
+            array.plot_connectivity(adjacenty, symmetric=False)
+            axes[j][i].set_aspect(1)
+            axes[j][i].set_ylim(-1.5, 1.3)
+            axes[j][i].set_xlim(-1.5, 1.5)
+            axes[j][i].axis('off')
+            axes[j][i].set_title(f'{band}-{bj}')
+    plt.show()
+    plt.tight_layout()
+    fig.savefig(
+        f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/ct10_p1e4/bonferroni_{band}_gamma_ct10_p1e4.pdf')
