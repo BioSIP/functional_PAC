@@ -215,7 +215,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     descriptors_path = args.input_folder
 
-    data = np.load(os.path.join(path, 'quantile.npy'))
+    data = np.load(os.path.join(path, 'quantile_purged.npy'))
 
     th = 0.005
     data_sig = data.copy()
