@@ -3,3 +3,6 @@ data/*
 __pycache__
 .idea
 .vscode
+docs/_*
+docs/make.bat
+docs/Makefile
