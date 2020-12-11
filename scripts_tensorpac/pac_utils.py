@@ -9,17 +9,20 @@ class PAC_object(object):
     matrix, the channels recorded, the sampling frequency, frequency ranges for amplitude
     and phase, and some utility methods. 
 
-
-    Args:
-        pac_hiper ([type]): PAC hipermatrix. 
-        channels ([type]): List of channels recorded
-        fs (int, optional): Sampling frequency of the EEG. Defaults to 500.
-        f_pha (tuple, optional): Frequency range for phase signals.
-        f_amp (tuple, optional): frequency range for amplitude signals.
-
+    :param pac_hiper: PAC hipermatrix. 
+    :type pac_hiper: [numpy.ndarray]
+    :param channels: List of channels recorded
+    :type channels: [list, numpy.ndarray]
+    :param fs: Sampling frequency of the EEG, defaults to 500.
+    :type fs: int, optional
+    :param f_pha: Frequency range for phase signals, defaults to (2, 20)
+    :type f_pha: tuple, optional
+    :param f_amp: Frequency range for amplitude signals, defaults to (15, 120)
+    :type f_amp: tuple, optional
     """
+
     def __init__(self, pac_hiper, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
-        """Constructor method
+        """Construction method
         """
         self.pac_hiper = pac_hiper
         if channels == None:
@@ -36,6 +39,17 @@ class PAC_object(object):
         self.f_amp = f_amp
 
     def purge_decomposition(self):
+        """Purges the inter-channel PAC matrices (PAC[i,j]) by estimating the contributions 
+        of the intra-channel PAC as: 
+
+        $$ 
+        PAC[i,j] = a PAC[i,i] + b PAC[i,j] + e
+        $$
+
+        and sets PAC[i,j] = e
+
+        TODO: support for PCA/ICA decomposition and volume conductivity. 
+        """
         self.purged_mat = np.zeros(self.pac_hiper.shape)
         for i in range(self.n_chan):
             for j in range(i, self.n_chan):
@@ -55,7 +69,6 @@ class PAC_object(object):
                     self.purged_mat[i, j] = self.pac_hiper[i, j]
 
 
-# %%
 # from sklearn.decomposition import PCA, SparsePCA
 # pac_hiper = datos_ctl[0]
 # n_chan = pac_hiper.shape[0]
@@ -66,6 +79,25 @@ class PAC_object(object):
 
 
 def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, channels=None):
+    """ Utility function for loading a subgroup of the dislexia dataset. 
+    
+    :param path: [description]
+    :type path: [type]
+    :param stimulus: [description], defaults to 2
+    :type stimulus: int, optional
+    :param group: [description], defaults to 'C'
+    :type group: str, optional
+    :param age: [description], defaults to 7
+    :type age: int, optional
+    :param purge: [description], defaults to False
+    :type purge: bool, optional
+    :param nan: [description], defaults to None
+    :type nan: [type], optional
+    :param channels: [description], defaults to None
+    :type channels: [type], optional
+    :return: [description]
+    :rtype: [type]
+    """
     # TODO: safe check of arguments.
     filenames = [fi for fi in os.listdir(path) if fi.endswith('npy')]
     r = re.compile(f'\d*_{age}_{stimulus}_{group}.npy')
