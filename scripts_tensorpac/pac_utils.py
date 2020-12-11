@@ -9,16 +9,12 @@ class PAC_object(object):
     matrix, the channels recorded, the sampling frequency, frequency ranges for amplitude
     and phase, and some utility methods. 
 
-    :param pac_hiper: PAC hipermatrix. 
-    :type pac_hiper: [numpy.ndarray]
-    :param channels: List of channels recorded
-    :type channels: [list, numpy.ndarray]
-    :param fs: Sampling frequency of the EEG, defaults to 500.
-    :type fs: int, optional
-    :param f_pha: Frequency range for phase signals, defaults to (2, 20)
-    :type f_pha: tuple, optional
-    :param f_amp: Frequency range for amplitude signals, defaults to (15, 120)
-    :type f_amp: tuple, optional
+    Args:
+        pac_hiper ([numpy.ndarray]): PAC hipermatrix. 
+        channels (list, numpy.ndarray]): List of channels recorded
+        fs (int, optional): Sampling frequency of the EEG. Defaults to 500.
+        f_pha (tuple, optional): Frequency range for phase signals. Defaults to (2, 20).
+        f_amp (tuple, optional): Frequency range for amplitude signals. Defaults to (15, 120).
     """
 
     def __init__(self, pac_hiper, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
@@ -79,26 +75,21 @@ class PAC_object(object):
 
 
 def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, channels=None):
-    """ Utility function for loading a subgroup of the dislexia dataset. 
-    
-    :param path: [description]
-    :type path: [type]
-    :param stimulus: [description], defaults to 2
-    :type stimulus: int, optional
-    :param group: [description], defaults to 'C'
-    :type group: str, optional
-    :param age: [description], defaults to 7
-    :type age: int, optional
-    :param purge: [description], defaults to False
-    :type purge: bool, optional
-    :param nan: [description], defaults to None
-    :type nan: [type], optional
-    :param channels: [description], defaults to None
-    :type channels: [type], optional
-    :return: [description]
-    :rtype: [type]
-    """
-    # TODO: safe check of arguments.
+    """Utility function for loading a subgroup of the dislexia dataset.
+    Args:
+        path ([type]): path where the data is.
+        stimulus (int, optional): [description]. Defaults to 2.
+        group (str, optional): [description]. Defaults to 'C'.
+        age (int, optional): [description]. Defaults to 7.
+        purge (bool, optional): Whether to purge for inter-channel interferences. Defaults to False.
+        nan ([type], optional): Set nans to this. Defaults to None.
+        channels ([type], optional): Channel list. Defaults to None.
+
+    Returns:
+        [type]: [description]
+
+    TODO: safe check of arguments.
+    """    
     filenames = [fi for fi in os.listdir(path) if fi.endswith('npy')]
     r = re.compile(f'\d*_{age}_{stimulus}_{group}.npy')
     filenames_r = list(filter(r.match, filenames))
