@@ -1,5 +1,6 @@
 import numpy as np
-from statistics import load_subgroup, ClusterBasedPermutationTesting
+from pac_utils import load_subgroup
+from statistics import ClusterBasedPermutationTesting
 from scipy.stats import ttest_ind
 #%% 
 
