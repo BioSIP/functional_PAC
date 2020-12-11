@@ -12,6 +12,25 @@ from scipy.stats import multivariate_normal
 from tensorpac import Pac
 
 
+def plot_specific(hipermatriz, ch_x, ch_y, f_pha=(2, 20), f_amp=(15, 120)):
+    """Simply plots the PAC connectivity at channels x and y
+
+    Args:
+        hipermatriz (numpy.ndarray): Hipermatrix of PAC connectivity
+        ch_x (int): Index of channel giving phase. 
+        ch_y (int): Index of channel receiving amplitude.
+        f_pha (tuple, optional): Range of frequencies for phase. Defaults to (2,20).
+        f_amp (tuple, optional): Range of frequencies for amplitude. Defaults to (15,120).
+    """
+    _, ax = plt.subplots(figsize=(5, 4))
+    f = ax.imshow(hipermatriz[ch_x, ch_y], extent=[
+                  f_pha[0], f_pha[1], f_amp[0], f_amp[1]], aspect='auto')
+    ax.set_title(f'Channels {ch_x}, {ch_y}')
+    ax.set_xlabel('Frequency for Phase (Hz)')
+    ax.set_ylabel('Frequency for Amplitude (Hz)')
+    plt.colorbar(f)
+
+
 def _pigtailed_cmap(cmap, swap_order=('green', 'red', 'blue')):
     """ Utility function to make a new colormap by concatenating a
         colormap with its reverse.
@@ -34,7 +53,17 @@ def _pigtailed_cmap(cmap, swap_order=('green', 'red', 'blue')):
 
 
 class BandConnectivityPlotter(object):
+    """Meta object for plotting different sorts of connectivity. 
+    TODO: reorganize. 
+
+    Args:
+        channels (list, optional): List of tested channels. Defaults to None.
+        bands (dict, optional): Dictionary of bands. Defaults to None.
+        cmap (str, optional): Colormap to be used. Defaults to 'coldhot'.
+    """
     def __init__(self, channels=None, bands=None, cmap='coldhot'):
+        """Constructor method. 
+        """
         self.channels = channels
         if channels == None:
             self.channels = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
@@ -141,6 +170,18 @@ class BandConnectivityPlotter(object):
         plt.colorbar(f)
 
     def plot_connect_hipermatrix(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120), filename='untitled'):
+        """Plots the hipermatrix connectivity.
+
+        Sets a n_chan by n_chan array of subplots in order, where the x axis is the 
+        phase frequency and the y axis is the amplitude frequency for displaying the
+        PAC matrices between electrodes one by one. 
+
+        Args:
+            hipermatrix (numpy.ndarray): PAC connectivity matrix.
+            f_pha (tuple, optional): Range of frequencies for phase. Defaults to (2,20).
+            f_amp (tuple, optional): Range of frequencies for amplitude. Defaults to (15,120).
+            filename (str, optional): Filename to save as pdf. Defaults to 'untitled'.
+        """
         n_chan, _, _, _ = hipermatrix.shape
         fig, ax = plt.subplots(
             n_chan, n_chan, figsize=(n_chan*1.5, n_chan*1.5))
@@ -153,7 +194,7 @@ class BandConnectivityPlotter(object):
         for giving_phase in range(n_chan):
             for receiving_amp in range(n_chan):
                 matris = hipermatrix[giving_phase, receiving_amp]
-                # matris[np.isnan(matris)] = 0.
+                # matris[np.isnan(matris)] = 0. # not correcting. 
                 print(matris.shape)
                 ax[receiving_amp, giving_phase].imshow(matris, cmap=self.cmap, origin='lower',
                                                        vmin=vmin, vmax=vmax, aspect='auto',
@@ -174,7 +215,15 @@ class BandConnectivityPlotter(object):
 
 
 class Head(PatchCollection):
+    """Creates a Patch Collection with the form of a head, to be used
+    by the EEG array connectivity assistant. 
+
+    Args:
+        pos (tuple, optional): Center of the head. Defaults to (0, 0).
+    """
     def __init__(self, pos=(0, 0)):
+        """Constructor method
+        """
         self.lineproperties = {'ec': 'black', 'fc': 'none'}
         self.patches = []
         self.head = mpatches.Circle(pos, 1, **self.lineproperties)
@@ -189,6 +238,15 @@ class Head(PatchCollection):
                                  match_original=True, antialiaseds=True)
 
     def generate_ear(self, side='left'):
+        """Draws the left or right ear. 
+
+        Args:
+            side (str, optional): Side of the ear. Can be ['left', 'right']. Defaults to 'left'
+
+        Returns:
+            PathPatch: Patch with the form of an ear.  
+        """
+        assert side in ['left', 'right']
         sign = -1 if side == 'left' else 1
         path_data = [
             (mpath.Path.MOVETO, [sign*np.cos(np.arcsin(0.2)), -0.2]),
@@ -199,7 +257,12 @@ class Head(PatchCollection):
         path = mpath.Path(verts, codes)
         return mpatches.PathPatch(path, **self.lineproperties)
 
-    def generate_nose(self, side='left'):
+    def generate_nose(self):
+        """Draws a triangular nose.
+
+        Returns:
+            PathPatch: Patch with the form of a nose.  
+        """
         path_data = [
             (mpath.Path.MOVETO, [-0.15, np.sin(np.arccos(0.15))]),
             (mpath.Path.LINETO, [0, 1.2]),
@@ -210,8 +273,20 @@ class Head(PatchCollection):
 
 
 class EEGarray(PatchCollection):
+    """Creates a Patch Array of electrodes, including the background
+    of the head. 
+
+    Args:
+        electrodes ([type]): [description]
+        layout (str, optional): [description]. Defaults to 'ten_twenty'.
+        marker_size (float, optional): [description]. Defaults to 0.03.
+        projection (str, optional): [description]. Defaults to 'simple'.
+        ax ([type], optional): [description]. Defaults to None.
+    """
     def __init__(self, electrodes, layout='ten_twenty', marker_size=0.03,
                  projection='simple', ax=None):
+        """[summary]
+        """
         self.layout = layout
         self.marker_size = marker_size
         if ax == None:
