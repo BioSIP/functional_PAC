@@ -39,8 +39,9 @@ point_loc = {'Fp1': (-82.5, -19.2, -46.0),
              'O2': (52.7, -94.0, -34.1)}
 
 
-path = '/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/functional_PAC/scripts_tensorpac'
-data = np.load(os.path.join(path, 'quantile_purged.npy'))
+ct = 30
+path = f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/p1e4_ct{ct}'
+data = np.load(os.path.join(path, f'quantile_p1e4_ct{ct}.npy'))
 
 th = 0.005
 data_sig = data.copy()
