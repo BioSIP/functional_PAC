@@ -1,9 +1,8 @@
-from statistics import ClusterBasedPermutationTesting
-
 import numpy as np
 from scipy.stats import ttest_ind
 
-from pac_utils import load_subgroup
+from ..functionalpac.pac_utils import load_subgroup
+from ..functionalpac.statistics import ClusterBasedPermutationTesting
 
 global bands
 global channel_n
