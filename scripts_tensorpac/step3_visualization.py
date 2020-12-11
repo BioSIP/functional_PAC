@@ -2,8 +2,8 @@
 import pickle
 import os
 import numpy as np
-from visualization import BandConnectivityPlotter
-from visualization import EEGarray, Head
+from functionalpac.visualization import BandConnectivityPlotter
+from functionalpac.visualization import EEGarray, Head
 import matplotlib.pyplot as plt
 
 point_loc = {'Fp1': (-82.5, -19.2, -46.0),
