@@ -5,7 +5,22 @@ import os
 
 
 class PAC_object(object):
-    def __init__(self, pac_hiper, channels, fs=500):
+    """This is the basis object for PAC matrices, including the representation of 
+    matrix, the channels recorded, the sampling frequency, frequency ranges for amplitude
+    and phase, and some utility methods. 
+
+
+    Args:
+        pac_hiper ([type]): PAC hipermatrix. 
+        channels ([type]): List of channels recorded
+        fs (int, optional): Sampling frequency of the EEG. Defaults to 500.
+        f_pha (tuple, optional): Frequency range for phase signals.
+        f_amp (tuple, optional): frequency range for amplitude signals.
+
+    """
+    def __init__(self, pac_hiper, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
+        """Constructor method
+        """
         self.pac_hiper = pac_hiper
         if channels == None:
             self.channels = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
@@ -17,6 +32,8 @@ class PAC_object(object):
         self.n_chan = len(self.channels)
         self.pac_shape = self.pac_hiper.shape[2:]
         self.fs = fs
+        self.f_pha = f_pha
+        self.f_amp = f_amp
 
     def purge_decomposition(self):
         self.purged_mat = np.zeros(self.pac_hiper.shape)
