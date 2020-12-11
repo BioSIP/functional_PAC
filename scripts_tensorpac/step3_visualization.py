@@ -189,6 +189,7 @@ class BandConnectivityPlotter(object):
             for receiving_amp in range(n_chan):
                 matris = hipermatrix[giving_phase, receiving_amp]
                 # matris[np.isnan(matris)] = 0.
+                print(matris.shape)
                 ax[receiving_amp, giving_phase].imshow(matris, cmap=self.cmap, origin='lower',
                                                        vmin=vmin, vmax=vmax, aspect='auto',
                                                        extent=[f_pha[0], f_pha[1], f_amp[0], f_amp[1]])
@@ -209,13 +210,13 @@ class BandConnectivityPlotter(object):
 
 # %%
 if __name__ == "__main__":
-    path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PAC/'
+    path = '/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/functional_PAC/scripts_tensorpac'
     parser = argparse.ArgumentParser()
     parser.add_argument('input_folder', type=str, default=path)
     args = parser.parse_args()
     descriptors_path = args.input_folder
 
-    data = np.load(os.path.join(path, 'quantile_purged.npy'))
+    data = np.load(os.path.join(path, 'quantile_prueba.npy'))
 
     th = 0.005
     data_sig = data.copy()
@@ -230,7 +231,7 @@ if __name__ == "__main__":
     plotter.plot_pac(data_sig, channels=[(15, 0), (1, 10)])
 
     # %%
-    plotter.plot_connect_hipermatrix(data_sig, filename='ct30_p1e4')
+    plotter.plot_connect_hipermatrix(data_sig, filename='quantile_prueba')
 
 # %%
 
