@@ -1,13 +1,15 @@
-from scipy.stats import multivariate_normal
+import pickle
+
+import matplotlib.patches as mpatches
+import matplotlib.path as mpath
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
-import matplotlib.path as mpath
-import matplotlib.patches as mpatches
 from matplotlib.colors import LinearSegmentedColormap
-from tensorpac import Pac
-import numpy as np
-import matplotlib.pyplot as plt
 from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
+from scipy.stats import multivariate_normal
+from tensorpac import Pac
 
 
 def _pigtailed_cmap(cmap, swap_order=('green', 'red', 'blue')):

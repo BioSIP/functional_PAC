@@ -1,9 +1,9 @@
+import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.pyplot as plt 
-from scipy.ndimage import label
 from joblib import Parallel, delayed
-from scipy.stats import ttest_ind
-from scipy.stats import rankdata
+from scipy.ndimage import label
+from scipy.stats import rankdata, ttest_ind
+
 
 def plot_specific(hipermatriz, ch_x, ch_y):
     _, ax  = plt.subplots(figsize=(5,4))
