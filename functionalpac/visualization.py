@@ -238,7 +238,7 @@ class EEGarray(PatchCollection):
         self.ax.add_collection(self)
 
     def get_positions(self, electrodes):
-        path_data = '../data/'
+        path_data = 'data/'
         eeg_layout = self.load_dict(path_data+self.layout)
         names = [el for i in range(len(electrodes)) for el in list(eeg_layout.keys())
                  if el.upper() == electrodes[i].upper()]
