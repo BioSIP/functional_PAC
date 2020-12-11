@@ -1,10 +1,8 @@
 import numpy as np
-import os
 import matplotlib.pyplot as plt 
 from scipy.ndimage import label
 from joblib import Parallel, delayed
 from scipy.stats import ttest_ind
-from scipy.ndimage import label
 from scipy.stats import rankdata
 
 def plot_specific(hipermatriz, ch_x, ch_y):
