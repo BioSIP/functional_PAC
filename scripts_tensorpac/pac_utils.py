@@ -1,10 +1,11 @@
 from sklearn.linear_model import LinearRegression
-import numpy as np 
+import numpy as np
 import re
 import os
 
+
 class PAC_object(object):
-    def __init__(self, pac_hiper, channels, fs=500): 
+    def __init__(self, pac_hiper, channels, fs=500):
         self.pac_hiper = pac_hiper
         if channels == None:
             self.channels = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
@@ -21,42 +22,44 @@ class PAC_object(object):
         self.purged_mat = np.zeros(self.pac_hiper.shape)
         for i in range(self.n_chan):
             for j in range(i, self.n_chan):
-                if i!=j:
-                    x = np.hstack((self.pac_hiper[i,i].reshape((-1,1)), self.pac_hiper[j,j].reshape(-1,1)))
+                if i != j:
+                    x = np.hstack((self.pac_hiper[i, i].reshape(
+                        (-1, 1)), self.pac_hiper[j, j].reshape(-1, 1)))
                     for z in range(2):
-                        vecs = [i,j]
+                        vecs = [i, j]
                         model = LinearRegression()
-                        y = self.pac_hiper[vecs[z],vecs[1-z]].reshape((-1,1))
-                        model.fit(x,y)
+                        y = self.pac_hiper[vecs[z], vecs[1-z]].reshape((-1, 1))
+                        model.fit(x, y)
                         coefs = model.coef_
                         fin = y-x.dot(coefs.T)
-                        self.purged_mat[vecs[z],vecs[1-z]] = fin.reshape(self.pac_shape)
+                        self.purged_mat[vecs[z], vecs[1-z]
+                                        ] = fin.reshape(self.pac_shape)
                 else:
-                    self.purged_mat[i,j] = self.pac_hiper[i,j]
+                    self.purged_mat[i, j] = self.pac_hiper[i, j]
 
 
 # %%
 # from sklearn.decomposition import PCA, SparsePCA
 # pac_hiper = datos_ctl[0]
 # n_chan = pac_hiper.shape[0]
-# pca_reg = PCA(n_components=n_chan)#, svd_solver='randomized') 
+# pca_reg = PCA(n_components=n_chan)#, svd_solver='randomized')
 # sc_reg = pca_reg.fit_transform(pac_hiper.reshape((n_chan**2, -1)))
 # sc_reg = sc_reg.reshape([n_chan, n_chan, -1])
 # sc_diag = sc_reg[np.diag_indices(31)]
 
 
 def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, channels=None):
-    #TODO: safe check of arguments. 
+    # TODO: safe check of arguments.
     filenames = [fi for fi in os.listdir(path) if fi.endswith('npy')]
     r = re.compile(f'\d*_{age}_{stimulus}_{group}.npy')
     filenames_r = list(filter(r.match, filenames))
     N = len(filenames_r)
     data = np.zeros((N, len(channels), len(channels), 52, 50))
-    for i,fil in enumerate(filenames_r):
+    for i, fil in enumerate(filenames_r):
         defin = np.load(os.path.join(path, fil))
         if nan is not None:
             defin[np.isnan(defin)] = nan
-        if purge: 
+        if purge:
             pac = PAC_object(defin, channels)
             pac.purge_decomposition()
             defin = pac.purged_mat

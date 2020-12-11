@@ -1,10 +1,10 @@
-#%% 
+# %%
 import pickle
 import os
 import numpy as np
 from visualization import BandConnectivityPlotter
 from visualization import EEGarray, Head
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 
 point_loc = {'Fp1': (-82.5, -19.2, -46.0),
              'Fp2': (82.2, -19.2, -46.0),
@@ -92,7 +92,7 @@ plotter = BandConnectivityPlotter()
 mm = plotter.display_band_connectivity(
     data_sig, f_pha=(2, 20), f_amp=(15, 120))
 
-#%% COSAS DE HEADS. 
+# %% COSAS DE HEADS.
 
 show_electrodes = True
 fig, axes = plt.subplots(2, 4, figsize=(15, 8))
@@ -101,7 +101,7 @@ for i, band in enumerate(['Delta', 'Theta', 'Alpha', 'Beta']):
         adjacenty = mm[i][j+1]
 
         array = EEGarray(electrodes, projection='lambert',
-                        marker_size=0.03, ax=axes[j][i])
+                         marker_size=0.03, ax=axes[j][i])
         array.topoplot(adjacenty)
         array.plot_topoplot(array.topodist['zz'], area='lambert')
         # if show_electrodes:

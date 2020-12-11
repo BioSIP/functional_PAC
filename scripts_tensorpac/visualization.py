@@ -173,8 +173,6 @@ class BandConnectivityPlotter(object):
         fig.savefig(f'{filename}.pdf')
 
 
-
-
 class Head(PatchCollection):
     def __init__(self, pos=(0, 0)):
         self.lineproperties = {'ec': 'black', 'fc': 'none'}
