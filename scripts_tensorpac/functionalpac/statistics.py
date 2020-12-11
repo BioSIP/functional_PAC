@@ -139,6 +139,7 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         """ Performs the Cluster-Based Permutation Testing for
         corrections. 
         It does: 
+        
         1. Computes the hypothesis testing between groups. 
         2. Sets the test threshold. 
         3. Cluster selection. 

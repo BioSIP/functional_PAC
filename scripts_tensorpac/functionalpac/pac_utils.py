@@ -38,9 +38,9 @@ class PAC_object(object):
         """Purges the inter-channel PAC matrices (PAC[i,j]) by estimating the contributions 
         of the intra-channel PAC as: 
 
-        $$ 
-        PAC[i,j] = a PAC[i,i] + b PAC[i,j] + e
-        $$
+        .. math::
+        
+            PAC[i,j] = a PAC[i,i] + b PAC[i,j] + e
 
         and sets PAC[i,j] = e
 
