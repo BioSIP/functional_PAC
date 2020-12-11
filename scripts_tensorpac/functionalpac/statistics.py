@@ -5,16 +5,6 @@ from scipy.ndimage import label
 from scipy.stats import rankdata, ttest_ind
 
 
-def plot_specific(hipermatriz, ch_x, ch_y):
-    _, ax = plt.subplots(figsize=(5, 4))
-    f = ax.imshow(hipermatriz[ch_x, ch_y], extent=[
-                  2, 20, 15, 120], aspect='auto')
-    ax.set_title(f'Channels {ch_x}, {ch_y}')
-    ax.set_xlabel('Frequency for Phase (Hz)')
-    ax.set_ylabel('Frequency for Amplitude (Hz)')
-    plt.colorbar(f)
-
-
 class PermutationTesting(object):
     def __init__(self, n_iter=200, alpha=0.05, test=ttest_ind,
                  twosided=False, n_jobs=10, threshold_pac=None):
