@@ -1,6 +1,7 @@
 from sklearn.linear_model import LinearRegression
 import numpy as np 
 import re
+import os
 
 class PAC_object(object):
     def __init__(self, pac_hiper, channels, fs=500): 
