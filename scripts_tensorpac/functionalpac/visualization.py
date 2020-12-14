@@ -10,6 +10,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 from scipy.stats import multivariate_normal
 from tensorpac import Pac
+from functionalpac.pac_utils import DEFAULT_BANDS
 
 
 def plot_specific(hipermatriz, ch_x, ch_y, f_pha=(2, 20), f_amp=(15, 120)):
@@ -17,7 +18,7 @@ def plot_specific(hipermatriz, ch_x, ch_y, f_pha=(2, 20), f_amp=(15, 120)):
 
     Args:
         hipermatriz (numpy.ndarray): Hipermatrix of PAC connectivity
-        ch_x (int): Index of channel giving phase. 
+        ch_x (int): Index of channel giving phase.
         ch_y (int): Index of channel receiving amplitude.
         f_pha (tuple, optional): Range of frequencies for phase. Defaults to (2,20).
         f_amp (tuple, optional): Range of frequencies for amplitude. Defaults to (15,120).
@@ -53,16 +54,17 @@ def _pigtailed_cmap(cmap, swap_order=('green', 'red', 'blue')):
 
 
 class BandConnectivityPlotter(object):
-    """Meta object for plotting different sorts of connectivity. 
-    TODO: reorganize. 
+    """Meta object for plotting different sorts of connectivity.
+    TODO: reorganize.
 
     Args:
         channels (list, optional): List of tested channels. Defaults to None.
         bands (dict, optional): Dictionary of bands. Defaults to None.
         cmap (str, optional): Colormap to be used. Defaults to 'coldhot'.
     """
+
     def __init__(self, channels=None, bands=None, cmap='coldhot'):
-        """Constructor method. 
+        """Constructor method.
         """
         self.channels = channels
         if channels == None:
@@ -86,12 +88,14 @@ class BandConnectivityPlotter(object):
             self.cmap = cm.get_cmap(cmap)
 
     def check_bands(self, f):
+        # TODO: remove
         for band in self.bands:
             if f > self.bands[band][0] and f <= self.bands[band][1]:
                 bands = band
         return bands
 
     def inverse_band_check(self, f_range):
+        # TODO: remove
         bands = set()
         for f in range(f_range[0], f_range[1], 2):
             bands.add(self.check_bands(f))
@@ -122,6 +126,7 @@ class BandConnectivityPlotter(object):
 
     def display_band_connectivity(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120)):
         # Check which bands there are:
+        # TODO: add dependency with PAC_connect and remove this. 
         bands_phase = self.inverse_band_check(f_pha)
         bands_amp = self.inverse_band_check(f_amp)
         fig, ax = plt.subplots(nrows=len(bands_amp), ncols=len(bands_phase),
@@ -172,11 +177,11 @@ class BandConnectivityPlotter(object):
     def plot_connect_hipermatrix(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120), filename='untitled'):
         """Plots the hipermatrix connectivity.
 
-        Sets a n_chan by n_chan array of subplots in order, where the x axis is the 
+        Sets a n_chan by n_chan array of subplots in order, where the x axis is the
         phase frequency and the y axis is the amplitude frequency for displaying the
-        PAC matrices between electrodes one by one. 
+        PAC matrices between electrodes one by one.
 
-        TODO: check "extent" in imshow. 
+        TODO: check "extent" in imshow.
 
         Args:
             hipermatrix (numpy.ndarray): PAC connectivity matrix.
@@ -188,7 +193,7 @@ class BandConnectivityPlotter(object):
         fig, ax = plt.subplots(
             n_chan, n_chan, figsize=(n_chan*1.5, n_chan*1.5))
         vmin, vmax = np.nanmin(hipermatrix), np.nanmax(hipermatrix)
-        if vmin==vmax:
+        if vmin == vmax:
             vmin, vmax = 0, 1
             print('normalizado')
         if vmin < 0:
@@ -199,10 +204,10 @@ class BandConnectivityPlotter(object):
         for giving_phase in range(n_chan):
             for receiving_amp in range(n_chan):
                 matris = hipermatrix[giving_phase, receiving_amp]
-                # matris[np.isnan(matris)] = 0. # not correcting. 
+                # matris[np.isnan(matris)] = 0. # not correcting.
                 ax[receiving_amp, giving_phase].imshow(matris, cmap=self.cmap, origin='lower',
-                                                       vmin=vmin, vmax=vmax, aspect='auto')#,
-                                                       #extent=(f_pha[0], f_pha[1], f_amp[0], f_amp[1]))
+                                                       vmin=vmin, vmax=vmax, aspect='auto',
+                                                       extent=(f_pha[0], f_pha[1], f_amp[0], f_amp[1]))
                 if receiving_amp == (n_chan-1):
                     ax[receiving_amp, giving_phase].set_xlabel(
                         self.channels[giving_phase])
@@ -220,11 +225,12 @@ class BandConnectivityPlotter(object):
 
 class Head(PatchCollection):
     """Creates a Patch Collection with the form of a head, to be used
-    by the EEG array connectivity assistant. 
+    by the EEG array connectivity assistant.
 
     Args:
         pos (tuple, optional): Center of the head. Defaults to (0, 0).
     """
+
     def __init__(self, pos=(0, 0)):
         """Constructor method
         """
@@ -242,13 +248,13 @@ class Head(PatchCollection):
                                  match_original=True, antialiaseds=True)
 
     def generate_ear(self, side='left'):
-        """Draws the left or right ear. 
+        """Draws the left or right ear.
 
         Args:
             side (str, optional): Side of the ear. Can be ['left', 'right']. Defaults to 'left'
 
         Returns:
-            PathPatch: Patch with the form of an ear.  
+            PathPatch: Patch with the form of an ear.
         """
         assert side in ['left', 'right']
         sign = -1 if side == 'left' else 1
@@ -265,7 +271,7 @@ class Head(PatchCollection):
         """Draws a triangular nose.
 
         Returns:
-            PathPatch: Patch with the form of a nose.  
+            PathPatch: Patch with the form of a nose.
         """
         path_data = [
             (mpath.Path.MOVETO, [-0.15, np.sin(np.arccos(0.15))]),
@@ -278,7 +284,7 @@ class Head(PatchCollection):
 
 class EEGarray(PatchCollection):
     """Creates a Patch Array of electrodes, including the background
-    of the head. 
+    of the head.
 
     Args:
         electrodes ([type]): [description]
@@ -287,6 +293,7 @@ class EEGarray(PatchCollection):
         projection (str, optional): [description]. Defaults to 'simple'.
         ax ([type], optional): [description]. Defaults to None.
     """
+
     def __init__(self, electrodes, layout='ten_twenty', marker_size=0.03,
                  projection='simple', ax=None):
         """[summary]
@@ -317,7 +324,7 @@ class EEGarray(PatchCollection):
         self.ax.add_collection(self)
 
     def get_positions(self, electrodes):
-        path_data = 'data/'
+        path_data = 'functionalpac/data/'
         eeg_layout = self.load_dict(path_data+self.layout)
         names = [el for i in range(len(electrodes)) for el in list(eeg_layout.keys())
                  if el.upper() == electrodes[i].upper()]
@@ -442,3 +449,31 @@ class EEGarray(PatchCollection):
         # self.patches = self.patches+arrows
         # PatchCollection.__init__(self, self.patches, match_original=True,
         #                         antialiaseds=True)
+
+
+def plot_head_diagram(pac_object, bands=DEFAULT_BANDS, show_electrodes=True,
+                      savefig=None):
+    mm = pac_object.extract_band_connectivity(bands)
+    bands_phase = mm.keys()
+    bands_amp = mm[list(bands_phase)[0]].keys()
+    fig, axes = plt.subplots(len(bands_amp), len(bands_phase),
+                             figsize=(4*len(bands_phase), 4*len(bands_amp)))
+    for i, band in enumerate(bands_phase):
+        for j, bj in enumerate(bands_amp):
+            adjacenty = mm[band][bj]
+            array = EEGarray(pac_object.channels, projection='lambert',
+                             marker_size=0.03, ax=axes[j][i])
+            array.topoplot(adjacenty)
+            array.plot_topoplot(array.topodist['zz'], area='lambert')
+            # if show_electrodes:
+            axes[j][i].add_collection(Head())
+            array.plot_connectivity(adjacenty, symmetric=False)
+            axes[j][i].set_aspect(1)
+            axes[j][i].set_ylim(-1.5, 1.3)
+            axes[j][i].set_xlim(-1.5, 1.5)
+            axes[j][i].axis('off')
+            axes[j][i].set_title(f'{band}-{bj}')
+    plt.show()
+    plt.tight_layout()
+    if savefig is not None:
+        fig.savefig(savefig)
