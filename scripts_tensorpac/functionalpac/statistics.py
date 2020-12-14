@@ -136,7 +136,7 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         Xcopy[X < thres] = 0
         return Xcopy
 
-    def fit(self, X, y):
+    def fit(self, X, y, verbose=True):
         """ Performs the Cluster-Based Permutation Testing for
         corrections. 
         It does: 
@@ -181,7 +181,8 @@ class ClusterBasedPermutationTesting(PermutationTesting):
                         label_arr[ch_pha, ch_amp] += cluster_lab
                         # compute cluster-based statistic:
                         cluster_stat = stat[ch_pha, ch_amp][select].sum()
-                        with Parallel(n_jobs=self.n_jobs, prefer="threads", verbose=20) as parallel:
+                        vrb_lv = 20 if verbose else 0
+                        with Parallel(n_jobs=self.n_jobs, prefer="threads", verbose=vrb_lv) as parallel:
                             parallel(
                                 delayed(self.permutation_testing)(X[:, ch_pha, ch_amp], y, cluster_stat, pval_arr[ch_pha, ch_amp], select) for i in range(self.n_iter))
 

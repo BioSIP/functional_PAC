@@ -186,6 +186,9 @@ class BandConnectivityPlotter(object):
         fig, ax = plt.subplots(
             n_chan, n_chan, figsize=(n_chan*1.5, n_chan*1.5))
         vmin, vmax = np.nanmin(hipermatrix), np.nanmax(hipermatrix)
+        if vmin==vmax:
+            vmin, vmax = 0, 1
+            print('normalizado')
         if vmin < 0:
             vmax = max(-vmin, vmax)
             vmin = -vmax
@@ -195,10 +198,9 @@ class BandConnectivityPlotter(object):
             for receiving_amp in range(n_chan):
                 matris = hipermatrix[giving_phase, receiving_amp]
                 # matris[np.isnan(matris)] = 0. # not correcting. 
-                print(matris.shape)
                 ax[receiving_amp, giving_phase].imshow(matris, cmap=self.cmap, origin='lower',
-                                                       vmin=vmin, vmax=vmax, aspect='auto',
-                                                       extent=[f_pha[0], f_pha[1], f_amp[0], f_amp[1]])
+                                                       vmin=vmin, vmax=vmax, aspect='auto')#,
+                                                       #extent=(f_pha[0], f_pha[1], f_amp[0], f_amp[1]))
                 if receiving_amp == (n_chan-1):
                     ax[receiving_amp, giving_phase].set_xlabel(
                         self.channels[giving_phase])
