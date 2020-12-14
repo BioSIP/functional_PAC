@@ -39,13 +39,15 @@ point_loc = {'Fp1': (-82.5, -19.2, -46.0),
              'O2': (52.7, -94.0, -34.1)}
 
 
-ct = 20
-path = f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/p1e4_ct{ct}'
-data = np.load(os.path.join(path, f'quantile_p1e4_ct{ct}.npy'))
+ct = 30
+stimulus = 8
+path = f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/defs/s{stimulus}/p1e4_ct{ct}'
+data = np.load(os.path.join(path, f'quantile_p1e4_ct{ct}_s{stimulus}.npy'))
 
 th = 0.05
 data_sig = data.copy()
 data_sig[(data > th) & (data < 1-th)] = np.nan
+#%% 
 
 plotter = BandConnectivityPlotter()
 
@@ -56,7 +58,7 @@ plotter = BandConnectivityPlotter()
 plotter.plot_pac(data_sig, channels=[(15, 0), (1, 10)])
 
 # %%
-plotter.plot_connect_hipermatrix(data_sig, filename='quantile_prueba_ct20')
+plotter.plot_connect_hipermatrix(data_sig, filename='quantile_p1e4_ct30_s8')
 
 # %%
 
@@ -95,25 +97,16 @@ mm = plotter.display_band_connectivity(
 
 # %% COSAS DE HEADS.
 
-show_electrodes = True
-fig, axes = plt.subplots(2, 4, figsize=(15, 8))
-for i, band in enumerate(['Delta', 'Theta', 'Alpha', 'Beta']):
-    for j, bj in enumerate(['Gamma', 'Epsilon']):
-        adjacenty = mm[i][j+1]
+from functionalpac.pac_utils import PAC_connect, DEFAULT_BANDS
+from functionalpac.visualization import plot_head_diagram
 
-        array = EEGarray(electrodes, projection='lambert',
-                         marker_size=0.03, ax=axes[j][i])
-        array.topoplot(adjacenty)
-        array.plot_topoplot(array.topodist['zz'], area='lambert')
-        # if show_electrodes:
-        axes[j][i].add_collection(Head())
-        array.plot_connectivity(adjacenty, symmetric=False)
-        axes[j][i].set_aspect(1)
-        axes[j][i].set_ylim(-1.5, 1.3)
-        axes[j][i].set_xlim(-1.5, 1.5)
-        axes[j][i].axis('off')
-        axes[j][i].set_title(f'{band}-{bj}')
-plt.show()
-plt.tight_layout()
-fig.savefig(
-    f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/ct10_p1e4/bonferroni_{band}_gamma_ct10_p1e4.pdf')
+electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
+                            'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'T8', 'TP9',
+                            'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
+                            'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+
+filepath = f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/ct10_p1e4/bonferroni_gamma_ct10_p1e4.pdf'
+hey = PAC_connect(data_sig, electrodes)
+plot_head_diagram(hey, DEFAULT_BANDS, show_electrodes=True, savefig=filepath)
+
+# 
