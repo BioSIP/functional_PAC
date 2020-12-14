@@ -1,3 +1,9 @@
+"""PAC Managing Utilities
+
+This script no se que. 
+
+"""
+
 from sklearn.linear_model import LinearRegression
 import numpy as np
 import re
@@ -105,7 +111,7 @@ class PAC_connect(PAC_object):
         list_def = [band for band in bands if band in band_set]
         return list_def
 
-    def extract_band_connectivity(self, bands=DEFAULT_BANDS):
+    def extract_band_connectivity(self, bands=DEFAULT_BANDS) -> dict:
         """Extracts the band connectivity of the matrix. 
 
         Args:
@@ -143,7 +149,7 @@ class PAC_connect(PAC_object):
 # sc_diag = sc_reg[np.diag_indices(31)]
 
 
-def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, channels=None):
+def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, channels=None) -> np.array:
     """Utility function for loading a subgroup of the dislexia dataset.
 
     Args:

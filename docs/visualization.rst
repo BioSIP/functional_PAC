@@ -2,6 +2,9 @@
 Visualization
 ===================================
 .. automodule:: visualization
+    :members:
+    :undoc-members:
+    :inherited-members:
 
 Matrix Visualization
 -----------------------------------

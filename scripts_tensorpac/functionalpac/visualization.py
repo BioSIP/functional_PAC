@@ -10,6 +10,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 from scipy.stats import multivariate_normal
 from tensorpac import Pac
+
 from functionalpac.utils import DEFAULT_BANDS
 
 
@@ -32,7 +33,7 @@ def plot_specific(hipermatriz, ch_x, ch_y, f_pha=(2, 20), f_amp=(15, 120)):
     plt.colorbar(f)
 
 
-def _pigtailed_cmap(cmap, swap_order=('green', 'red', 'blue')):
+def _pigtailed_cmap(cmap, swap_order=('green', 'red', 'blue')) -> dict:
     """ Utility function to make a new colormap by concatenating a
         colormap with its reverse.
     """
@@ -126,11 +127,11 @@ class BandConnectivityPlotter(object):
 
     def display_band_connectivity(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120)):
         # Check which bands there are:
-        # TODO: add dependency with PAC_connect and remove this. 
+        # TODO: add dependency with PAC_connect and remove this.
         bands_phase = self.inverse_band_check(f_pha)
         bands_amp = self.inverse_band_check(f_amp)
         _, ax = plt.subplots(nrows=len(bands_amp), ncols=len(bands_phase),
-                               figsize=(6*len(bands_phase), 6*len(bands_amp)))
+                             figsize=(6*len(bands_phase), 6*len(bands_amp)))
         fpha_ref = np.linspace(f_pha[0], f_pha[1], hipermatrix.shape[-1])
         famp_ref = np.linspace(f_amp[0], f_amp[1], hipermatrix.shape[-2])
         bc = []
@@ -453,6 +454,14 @@ class EEGarray(PatchCollection):
 
 def plot_head_diagram(pac_object, bands=DEFAULT_BANDS, show_electrodes=True,
                       savefig=None):
+    """Plots a head diagram - topoplot. 
+
+    Args:
+        pac_object ([type]): [description]
+        bands ([type], optional): [description]. Defaults to DEFAULT_BANDS.
+        show_electrodes (bool, optional): [description]. Defaults to True.
+        savefig ([type], optional): [description]. Defaults to None.
+    """
     mm = pac_object.extract_band_connectivity(bands)
     bands_phase = mm.keys()
     bands_amp = mm[list(bands_phase)[0]].keys()
