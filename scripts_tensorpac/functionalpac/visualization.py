@@ -176,6 +176,8 @@ class BandConnectivityPlotter(object):
         phase frequency and the y axis is the amplitude frequency for displaying the
         PAC matrices between electrodes one by one. 
 
+        TODO: check "extent" in imshow. 
+
         Args:
             hipermatrix (numpy.ndarray): PAC connectivity matrix.
             f_pha (tuple, optional): Range of frequencies for phase. Defaults to (2,20).
