@@ -10,7 +10,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 from scipy.stats import multivariate_normal
 from tensorpac import Pac
-from functionalpac.pac_utils import DEFAULT_BANDS
+from functionalpac.utils import DEFAULT_BANDS
 
 
 def plot_specific(hipermatriz, ch_x, ch_y, f_pha=(2, 20), f_amp=(15, 120)):

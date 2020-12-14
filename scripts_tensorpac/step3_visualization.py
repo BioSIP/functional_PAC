@@ -40,7 +40,7 @@ point_loc = {'Fp1': (-82.5, -19.2, -46.0),
 
 
 ct = 30
-stimulus = 8
+stimulus = 2
 path = f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/defs/s{stimulus}/p1e4_ct{ct}'
 data = np.load(os.path.join(path, f'quantile_p1e4_ct{ct}_s{stimulus}.npy'))
 
@@ -97,7 +97,7 @@ mm = plotter.display_band_connectivity(
 
 # %% COSAS DE HEADS.
 
-from functionalpac.pac_utils import PAC_connect, DEFAULT_BANDS
+from functionalpac.utils import PAC_connect, DEFAULT_BANDS
 from functionalpac.visualization import plot_head_diagram
 
 electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
@@ -107,6 +107,6 @@ electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
 
 filepath = f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/ct10_p1e4/bonferroni_gamma_ct10_p1e4.pdf'
 hey = PAC_connect(data_sig, electrodes)
-plot_head_diagram(hey, DEFAULT_BANDS, show_electrodes=True, savefig=filepath)
+plot_head_diagram(hey, DEFAULT_BANDS, show_electrodes=True, savefig=None)
 
 # 
