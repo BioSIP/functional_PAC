@@ -145,6 +145,7 @@ class PAC_connect(PAC_object):
 
 def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, channels=None):
     """Utility function for loading a subgroup of the dislexia dataset.
+
     Args:
         path ([type]): path where the data is.
         stimulus (int, optional): [description]. Defaults to 2.

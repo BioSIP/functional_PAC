@@ -1,7 +1,10 @@
 
 Functional PAC API
 ===================================
-.. automodule:: utils
+.. automodule:: utils 
+    :members:
+    :undoc-members:
+    :inherited-members:
 
 class PAC_object
 -----------------------------------
