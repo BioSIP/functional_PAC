@@ -39,11 +39,11 @@ point_loc = {'Fp1': (-82.5, -19.2, -46.0),
              'O2': (52.7, -94.0, -34.1)}
 
 
-ct = 30
+ct = 20
 path = f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/p1e4_ct{ct}'
 data = np.load(os.path.join(path, f'quantile_p1e4_ct{ct}.npy'))
 
-th = 0.005
+th = 0.05
 data_sig = data.copy()
 data_sig[(data > th) & (data < 1-th)] = np.nan
 
@@ -56,7 +56,7 @@ plotter = BandConnectivityPlotter()
 plotter.plot_pac(data_sig, channels=[(15, 0), (1, 10)])
 
 # %%
-plotter.plot_connect_hipermatrix(data_sig, filename='quantile_prueba')
+plotter.plot_connect_hipermatrix(data_sig, filename='quantile_prueba_ct20')
 
 # %%
 
