@@ -3,6 +3,15 @@ import numpy as np
 import re
 import os
 
+global DEFAULT_BANDS
+
+DEFAULT_BANDS = {'Delta': (0.5, 4),
+                 'Theta': (4, 8),
+                 'Alpha': (8, 12),
+                 'Beta': (12, 25),
+                 'Gamma': (25, 100),
+                 'Epsilon': (100, 200)}
+
 
 class PAC_object(object):
     """This is the basis object for PAC matrices, including the representation of 
@@ -10,17 +19,17 @@ class PAC_object(object):
     and phase, and some utility methods. 
 
     Args:
-        pac_hiper ([numpy.ndarray]): PAC hipermatrix. 
+        pac_mat ([numpy.ndarray]): PAC hipermatrix. 
         channels (list, numpy.ndarray]): List of channels recorded
         fs (int, optional): Sampling frequency of the EEG. Defaults to 500.
         f_pha (tuple, optional): Frequency range for phase signals. Defaults to (2, 20).
         f_amp (tuple, optional): Frequency range for amplitude signals. Defaults to (15, 120).
     """
 
-    def __init__(self, pac_hiper, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
+    def __init__(self, pac_mat, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
         """Construction method
         """
-        self.pac_hiper = pac_hiper
+        self.pac_mat = pac_mat
         if channels == None:
             self.channels = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
                              'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'T8', 'TP9',
@@ -29,7 +38,7 @@ class PAC_object(object):
         else:
             self.channels = channels
         self.n_chan = len(self.channels)
-        self.pac_shape = self.pac_hiper.shape[2:]
+        self.pac_shape = self.pac_mat.shape[2:]
         self.fs = fs
         self.f_pha = f_pha
         self.f_amp = f_amp
@@ -39,30 +48,90 @@ class PAC_object(object):
         of the intra-channel PAC as: 
 
         .. math::
-        
+
             PAC[i,j] = a PAC[i,i] + b PAC[i,j] + e
 
         and sets PAC[i,j] = e
 
         TODO: support for PCA/ICA decomposition and volume conductivity. 
         """
-        self.purged_mat = np.zeros(self.pac_hiper.shape)
+        self.purged_mat = np.zeros(self.pac_mat.shape)
         for i in range(self.n_chan):
             for j in range(i, self.n_chan):
                 if i != j:
-                    x = np.hstack((self.pac_hiper[i, i].reshape(
-                        (-1, 1)), self.pac_hiper[j, j].reshape(-1, 1)))
+                    x = np.hstack((self.pac_mat[i, i].reshape(
+                        (-1, 1)), self.pac_mat[j, j].reshape(-1, 1)))
                     for z in range(2):
                         vecs = [i, j]
                         model = LinearRegression()
-                        y = self.pac_hiper[vecs[z], vecs[1-z]].reshape((-1, 1))
+                        y = self.pac_mat[vecs[z], vecs[1-z]].reshape((-1, 1))
                         model.fit(x, y)
                         coefs = model.coef_
                         fin = y-x.dot(coefs.T)
                         self.purged_mat[vecs[z], vecs[1-z]
                                         ] = fin.reshape(self.pac_shape)
                 else:
-                    self.purged_mat[i, j] = self.pac_hiper[i, j]
+                    self.purged_mat[i, j] = self.pac_mat[i, j]
+
+
+class PAC_connect(PAC_object):
+    """An implementation of PAC_object that focuses on utilities for managing
+    connectivity matrices. 
+
+    Args:
+        pac_connect ([numpy.ndarray]): PAC connectivity hipermatrix, of size
+            n_chan x n_chan x freqs_pha x freqs_amp 
+        channels (list, numpy.ndarray]): List of channels recorded
+        fs (int, optional): Sampling frequency of the EEG. Defaults to 500.
+        f_pha (tuple, optional): Frequency range for phase signals. Defaults to (2, 20).
+        f_amp (tuple, optional): Frequency range for amplitude signals. Defaults to (15, 120).
+    """
+
+    def __init__(self, pac_connect, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
+        """Construction method
+        """
+        PAC_object.__init__(self, pac_mat=pac_connect, channels=channels, fs=fs,
+                            f_pha=f_pha, f_amp=f_amp)
+
+    def check_bands(self, f, bands=DEFAULT_BANDS):
+        for band in bands:
+            if f > bands[band][0] and f <= bands[band][1]:
+                return band
+
+    def inverse_band_check(self, f_range, bands=DEFAULT_BANDS):
+        band_set = set()
+        for f in range(f_range[0], f_range[1], 2):
+            band_set.add(self.check_bands(f, bands))
+        list_def = [band for band in bands if band in band_set]
+        return list_def
+
+    def extract_band_connectivity(self, bands=DEFAULT_BANDS):
+        """Extracts the band connectivity of the matrix. 
+
+        Args:
+            bands (dictionary): dictionary with band information.
+
+        Returns:
+            [dict]: dictionary of dictionaries for conexions. 
+        """
+        bands_phase = self.inverse_band_check(self.f_pha, bands)
+        bands_amp = self.inverse_band_check(self.f_amp, bands)
+        fpha_ref = np.linspace(
+            self.f_pha[0], self.f_pha[1], self.pac_mat.shape[-1])
+        famp_ref = np.linspace(
+            self.f_amp[0], self.f_amp[1], self.pac_mat.shape[-2])
+        bc = dict()
+        for fas in bands_phase:
+            cosa = dict()
+            for famp in bands_amp:
+                limits_phas = bands[fas]
+                limits_amp = bands[famp]
+                mask = np.outer((fpha_ref <= limits_phas[1]) & (fpha_ref > limits_phas[0]),
+                                (famp_ref <= limits_amp[1]) & (famp_ref > limits_amp[0]))
+                matrix = np.nanmean(self.pac_mat[:, :, mask.T], axis=-1)
+                cosa[famp] = matrix.T
+            bc[fas] = cosa
+        return bc
 
 
 # from sklearn.decomposition import PCA, SparsePCA
@@ -89,7 +158,7 @@ def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, cha
         [type]: [description]
 
     TODO: safe check of arguments.
-    """    
+    """
     filenames = [fi for fi in os.listdir(path) if fi.endswith('npy')]
     r = re.compile(f'\d*_{age}_{stimulus}_{group}.npy')
     filenames_r = list(filter(r.match, filenames))
