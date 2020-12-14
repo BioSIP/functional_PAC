@@ -132,7 +132,8 @@ class ClusterBasedPermutationTesting(PermutationTesting):
             [numpy.ndarray]: Thresholded array
         """
         Xcopy = X.copy()
-        Xcopy[X < self.threshold_pac] = 0
+        thres = np.quantile(Xcopy.flatten(), self.threshold_pac)
+        Xcopy[X < thres] = 0
         return Xcopy
 
     def fit(self, X, y):
