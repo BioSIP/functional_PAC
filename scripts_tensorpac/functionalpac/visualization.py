@@ -106,7 +106,7 @@ class BandConnectivityPlotter(object):
         n_plots = len(channels)
         ncols = max(1, np.ceil(np.sqrt(n_plots)).astype(int))
         nrows = max(1, np.floor(np.sqrt(n_plots)).astype(int))
-        fig, ax = plt.subplots(nrows, ncols, figsize=(ncols*5, nrows*5))
+        _, ax = plt.subplots(nrows, ncols, figsize=(ncols*5, nrows*5))
         ax = ax.flatten()
         vmin, vmax = np.nanmin(hipermatrix), np.nanmax(hipermatrix)
         if vmin < 0:
@@ -129,7 +129,7 @@ class BandConnectivityPlotter(object):
         # TODO: add dependency with PAC_connect and remove this. 
         bands_phase = self.inverse_band_check(f_pha)
         bands_amp = self.inverse_band_check(f_amp)
-        fig, ax = plt.subplots(nrows=len(bands_amp), ncols=len(bands_phase),
+        _, ax = plt.subplots(nrows=len(bands_amp), ncols=len(bands_phase),
                                figsize=(6*len(bands_phase), 6*len(bands_amp)))
         fpha_ref = np.linspace(f_pha[0], f_pha[1], hipermatrix.shape[-1])
         famp_ref = np.linspace(f_amp[0], f_amp[1], hipermatrix.shape[-2])
@@ -301,7 +301,7 @@ class EEGarray(PatchCollection):
         self.layout = layout
         self.marker_size = marker_size
         if ax == None:
-            fig, self.ax = plt.subplots()
+            _, self.ax = plt.subplots()
         else:
             self.ax = ax
         if type(electrodes) == list:
