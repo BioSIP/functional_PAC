@@ -373,6 +373,10 @@ class EEGarray(PatchCollection):
     def get_ch_pos(self, ch):
         return np.asarray(self.convert_sph_xy(self.pos[ch], 1))
 
+    def get_chname_pos(self, chname):
+        # TODO: implement
+        return np.asarray(self.convert_sph_xy(self.pos[ch], 1))
+
 
 # def plot_head_diagram(pac_object, bands=DEFAULT_BANDS, show_electrodes=True,
 #                       savefig=None):
@@ -479,17 +483,18 @@ class Topoplot(object):
         """
         vmax = np.nanmax(np.abs(self.topodist['zz']))
         vmin = -vmax
-        if vmin-vmax != 0:
-            im = self.ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
-                                    self.topodist['zz'], vmin=vmin, vmax=vmax,
-                                    cmap='coolwarm', antialiaseds=True)  # , shading='gouraud')
-            if area is not None:
-                if area == 'lambert' and self.eegarray.projection == 'lambert':
-                    patch = self.lambert_patch()
-                else:
-                    patch = mpatches.Circle(
-                        (0, 0), radius=1, transform=self.ax.transData)
-            im.set_clip_path(patch)
+        if vmin == vmax:
+            vmin, vmax = -1, 1
+        im = self.ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
+                                self.topodist['zz'], vmin=vmin, vmax=vmax,
+                                cmap='coolwarm', antialiaseds=True)  # , shading='gouraud')
+        if area is not None:
+            if area == 'lambert' and self.eegarray.projection == 'lambert':
+                patch = self.lambert_patch()
+            else:
+                patch = mpatches.Circle(
+                    (0, 0), radius=1, transform=self.ax.transData)
+        im.set_clip_path(patch)
 
 
 class HeadPlot(object):
@@ -511,7 +516,8 @@ class HeadPlot(object):
             self.eegarray = eegarray
 
     def plot_topo(self):
-        self.topo = Topoplot(self.adjacency, self.eegarray, cov=None, ax=self.ax)
+        self.topo = Topoplot(self.adjacency, self.eegarray,
+                             cov=None, ax=self.ax)
         self.topo.plot_topoplot(area='lambert')
 
     def show_head(self):
@@ -563,18 +569,61 @@ class HeadPlot(object):
         #                         antialiaseds=True)
 
 
-def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
-                           show_head=True, show_connect=True, projection='simple',
-                           savefig=None):
-    """Shows the connectivity diagram over head plots 
+def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=True,
+                      show_head=True, show_connect=True, projection='simple',
+                      title=None, savefig=None):
+    """Shows a simple head diagram from the adjacency matrix and electrode list
 
     Args:
-        pac_connect (PAC_object): Can be PAC_object or PAC_connect.
-        band_select ([type]): [description]
+        adjacency ([type]): [description]
+        electrodes ([type]): [description]
         show_topo (bool, optional): [description]. Defaults to True.
         show_electrodes (bool, optional): [description]. Defaults to True.
         show_head (bool, optional): [description]. Defaults to True.
         show_connect (bool, optional): [description]. Defaults to True.
+        projection (str, optional): [description]. Defaults to 'simple'.
+        title (str, optional): Title of the graph. Defaults to None.
+        savefig ([type], optional): [description]. Defaults to None.
+    """
+    fig, ax = plt.subplots()
+    headplot = HeadPlot(adjacency, electrodes,
+                        projection=projection, ax=ax)
+    if show_topo:
+        headplot.plot_topo()
+    if show_head:
+        headplot.show_head()
+    if show_electrodes:
+        headplot.show_array()
+    if show_connect:
+        headplot.connect()
+    ax.set_aspect(1)
+    ax.set_ylim(-1.5, 1.3)
+    ax.set_xlim(-1.5, 1.5)
+    ax.axis('off')
+    ax.set_title(f'{b_pha}-{b_amp}')
+    plt.show()
+    plt.tight_layout()
+    if title is not None:
+        fig.suptitle(title, fontsize=16)
+    if savefig is not None:
+        fig.savefig(savefig)
+
+
+def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
+                           show_head=True, show_connect=True, projection='simple',
+                           title=None, savefig=None):
+    """Shows the connectivity diagram over head plots 
+
+    Args:
+        pac_object ([type]): [description]
+        bands ([type], optional): [description]. Defaults to DEFAULT_BANDS.
+        show_topo (bool, optional): [description]. Defaults to True.
+        show_electrodes (bool, optional): [description]. Defaults to True.
+        show_head (bool, optional): [description]. Defaults to True.
+        show_connect (bool, optional): [description]. Defaults to True.
+        projection (str, optional): [description]. Defaults to 'simple'.
+        title (str, optional): Title of the graph. Defaults to None.
+        savefig ([type], optional): [description]. Defaults to None.
     """
     mm = pac_object.extract_band_connectivity(bands)
     bands_phase = mm.keys()
@@ -600,5 +649,7 @@ def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show
             axes[j][i].set_title(f'{b_pha}-{b_amp}')
     plt.show()
     plt.tight_layout()
+    if title is not None:
+        fig.suptitle(title, fontsize=16)
     if savefig is not None:
         fig.savefig(savefig)
