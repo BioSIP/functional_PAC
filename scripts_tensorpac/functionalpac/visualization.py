@@ -324,6 +324,9 @@ class EEGarray(PatchCollection):
             self, self.patches, match_original=True, antialiaseds=True)
         self.ax.add_collection(self)
 
+    def __len__(self):
+        return len(self.names)
+
     def get_positions(self, electrodes):
         path_data = 'functionalpac/data/'
         eeg_layout = self.load_dict(path_data+self.layout)
@@ -416,7 +419,7 @@ class Topoplot(object):
                              np.arange(-1.5, 1.5, 0.05))
         zz = np.zeros(xx.shape)
         self.topodist = dict(xx=xx, yy=yy, zz=zz)
-        self.compute_topoplot(cov)
+        self.compute_topoplot(cov=cov)
         if ax is not None:
             self.ax = ax
         else:
@@ -508,7 +511,7 @@ class HeadPlot(object):
             self.eegarray = eegarray
 
     def plot_topo(self):
-        self.topo = Topoplot(self.adjacency, self.eegarray, self.ax)
+        self.topo = Topoplot(self.adjacency, self.eegarray, cov=None, ax=self.ax)
         self.topo.plot_topoplot(area='lambert')
 
     def show_head(self):
