@@ -9,6 +9,10 @@ Welcome to Functional PAC's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+   
+   utils
+   statistics
+   visualization
 
 
 Indices and tables

@@ -1,7 +1,15 @@
 """PAC Managing Utilities
 
-This script no se que. 
+This module has the PAC object, along with several utilities for dealing with
+PAC connectivity, data loading, etc. 
 
+    Typical usage example::
+
+        pac = Pac_object(pac_matrix)
+        pac_purg = pac.purge_decomposition()
+
+..  _Google Python Style Guide:
+    http://google.github.io/styleguide/pyguide.html
 """
 
 from sklearn.linear_model import LinearRegression
@@ -32,9 +40,8 @@ class PAC_object(object):
         f_amp (tuple, optional): Frequency range for amplitude signals. Defaults to (15, 120).
     """
 
-    def __init__(self, pac_mat, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
-        """Construction method
-        """
+    def __init__(self, pac_mat:np.ndarray, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
+
         self.pac_mat = pac_mat
         if channels == None:
             self.channels = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
