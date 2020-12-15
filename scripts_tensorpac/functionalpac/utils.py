@@ -3,13 +3,18 @@
 This module has the PAC object, along with several utilities for dealing with
 PAC connectivity, data loading, etc. 
 
-    Typical usage example::
+Typical usage example
+-------------------
+::
 
-        pac = Pac_object(pac_matrix)
-        pac_purg = pac.purge_decomposition()
+    pac = Pac_object(pac_matrix)
+    pac_purg = pac.purge_decomposition()
 
 ..  _Google Python Style Guide:
     http://google.github.io/styleguide/pyguide.html
+
+Util classes:
+-------------------
 """
 
 from sklearn.linear_model import LinearRegression
@@ -40,8 +45,9 @@ class PAC_object(object):
         f_amp (tuple, optional): Frequency range for amplitude signals. Defaults to (15, 120).
     """
 
-    def __init__(self, pac_mat:np.ndarray, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
-
+    def __init__(self, pac_mat: np.ndarray, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
+        """Construction method
+        """
         self.pac_mat = pac_mat
         if channels == None:
             self.channels = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
@@ -126,6 +132,14 @@ class PAC_object(object):
             bc[fas] = cosa
         return bc
 
+# from sklearn.decomposition import PCA, SparsePCA
+# pac_hiper = datos_ctl[0]
+# n_chan = pac_hiper.shape[0]
+# pca_reg = PCA(n_components=n_chan)#, svd_solver='randomized')
+# sc_reg = pca_reg.fit_transform(pac_hiper.reshape((n_chan**2, -1)))
+# sc_reg = sc_reg.reshape([n_chan, n_chan, -1])
+# sc_diag = sc_reg[np.diag_indices(31)]
+
 
 class PAC_connect(PAC_object):
     """An implementation of PAC_object that focuses on utilities for managing
@@ -145,15 +159,6 @@ class PAC_connect(PAC_object):
         """
         PAC_object.__init__(self, pac_mat=pac_connect, channels=channels, fs=fs,
                             f_pha=f_pha, f_amp=f_amp)
-
-
-# from sklearn.decomposition import PCA, SparsePCA
-# pac_hiper = datos_ctl[0]
-# n_chan = pac_hiper.shape[0]
-# pca_reg = PCA(n_components=n_chan)#, svd_solver='randomized')
-# sc_reg = pca_reg.fit_transform(pac_hiper.reshape((n_chan**2, -1)))
-# sc_reg = sc_reg.reshape([n_chan, n_chan, -1])
-# sc_diag = sc_reg[np.diag_indices(31)]
 
 
 def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, channels=None) -> np.array:

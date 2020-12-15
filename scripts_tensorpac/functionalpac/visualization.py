@@ -11,7 +11,7 @@ from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 from scipy.stats import multivariate_normal
 from tensorpac import Pac
 
-from functionalpac.utils import DEFAULT_BANDS
+from .utils import DEFAULT_BANDS
 
 
 def plot_specific(hipermatriz, ch_x, ch_y, f_pha=(2, 20), f_amp=(15, 120)):
@@ -580,7 +580,7 @@ def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show
                              figsize=(4*len(bands_phase), 4*len(bands_amp)))
     for i, b_pha in enumerate(bands_phase):
         for j, b_amp in enumerate(bands_amp):
-            headplot = HeadPlot(mm, pac_object.electrodes,
+            headplot = HeadPlot(mm[b_pha][b_amp], pac_object.channels,
                                 projection=projection, ax=axes[j][i])
             if show_topo:
                 headplot.plot_topo()
