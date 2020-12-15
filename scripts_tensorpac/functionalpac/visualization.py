@@ -367,51 +367,159 @@ class EEGarray(PatchCollection):
         with open(name + '.lay', 'rb') as f:
             return pickle.load(f)
 
+    def get_ch_pos(self, ch):
+        return np.asarray(self.convert_sph_xy(self.pos[ch], 1))
+
+
+# def plot_head_diagram(pac_object, bands=DEFAULT_BANDS, show_electrodes=True,
+#                       savefig=None):
+#     """Plots a head diagram - topoplot.
+
+#     Args:
+#         pac_object ([type]): [description]
+#         bands ([type], optional): [description]. Defaults to DEFAULT_BANDS.
+#         show_electrodes (bool, optional): [description]. Defaults to True.
+#         savefig ([type], optional): [description]. Defaults to None.
+#     """
+#     mm = pac_object.extract_band_connectivity(bands)
+#     bands_phase = mm.keys()
+#     bands_amp = mm[list(bands_phase)[0]].keys()
+#     fig, axes = plt.subplots(len(bands_amp), len(bands_phase),
+#                              figsize=(4*len(bands_phase), 4*len(bands_amp)))
+#     for i, band in enumerate(bands_phase):
+#         for j, bj in enumerate(bands_amp):
+#             adjacenty = mm[band][bj]
+#             array = EEGarray(pac_object.channels, projection='lambert',
+#                              marker_size=0.03, ax=axes[j][i])
+#             array.topoplot(adjacenty)
+#             array.plot_topoplot(array.topodist['zz'], area='lambert')
+#             # if show_electrodes:
+#             axes[j][i].add_collection(Head())
+#             array.plot_connectivity(adjacenty, symmetric=False)
+#             axes[j][i].set_aspect(1)
+#             axes[j][i].set_ylim(-1.5, 1.3)
+#             axes[j][i].set_xlim(-1.5, 1.5)
+#             axes[j][i].axis('off')
+#             axes[j][i].set_title(f'{band}-{bj}')
+#     plt.show()
+#     plt.tight_layout()
+#     if savefig is not None:
+#         fig.savefig(savefig)
+
+
+class Topoplot(object):
+
+    def __init__(self, adjacency, eegarray, cov=None, ax=None):
+        self.adjacency = adjacency
+        self.eegarray = eegarray
+        xx, yy = np.meshgrid(np.arange(-1.5, 1.5, 0.05),
+                             np.arange(-1.5, 1.5, 0.05))
+        zz = np.zeros(xx.shape)
+        self.topodist = dict(xx=xx, yy=yy, zz=zz)
+        self.compute_topoplot(cov)
+        if ax is not None:
+            self.ax = ax
+        else:
+            _, self.ax = plt.subplots()
+
     def reset_topo(self):
         self.topodist['zz'] = np.zeros(self.topodist['xx'].shape)
 
-    def topoplot(self, adjacency, cov=None):
-        nchan = adjacency.shape[0]
-        assert nchan == adjacency.shape[1]
+    def compute_topoplot(self, cov=None):
+        """Generates a topoplot array via the Gaussian Mixture Models method.
+
+        Args:
+            cov (np.ndarray, optional): Covariance matrix for the Gaussian models
+                                        to be used in the mixture. Defaults to None, 
+                                        which means identity covariance with values
+                                        1/len(electrodes) at the diagonal.
+        """
+        nchan = self.adjacency.shape[0]
+        assert nchan == self.adjacency.shape[1]
         if cov is None:
-            cov = 0.05*np.eye(2)
+            cov = np.eye(2)/len(self.eegarray)
         self.reset_topo()
         xxx = np.stack((self.topodist['xx'], self.topodist['yy']), axis=-1)
         for ch in range(nchan):
-            if np.isnan(adjacency[ch, ch]) == False:
-                mu = np.asarray(self.convert_sph_xy(self.pos[ch], 1))
+            if np.isnan(self.adjacency[ch, ch]) == False:
+                mu = self.eegarray.get_ch_pos(ch)
                 topo_act = multivariate_normal.pdf(xxx, mean=mu, cov=cov)
-                self.topodist['zz'] += adjacency[ch, ch]*topo_act
+                self.topodist['zz'] += self.adjacency[ch, ch]*topo_act
 
-    def plot_topoplot(self, adjacency, area=None):
+    def lambert_patch(self):
+        """Creates a custom Lambert patch for visualization of the lambert
+        head projection
+
+        Returns:
+            [matplotlib.mpatches]: Patch for shape of lambert cut
+        """
+        path_data = [
+            (mpath.Path.MOVETO, [-1.5, 0.6]),
+            (mpath.Path.CURVE4, [0, 1.5]),
+            (mpath.Path.CURVE4, [0, 1.5]),
+            (mpath.Path.CURVE4, [1.5, 0.6]),
+            (mpath.Path.LINETO, [1.5, -0.1]),
+            (mpath.Path.CURVE4, [1.5, -2]),
+            (mpath.Path.CURVE4, [-1.5, -2]),
+            (mpath.Path.CURVE4, [-1.5, -0.1]),
+            (mpath.Path.CLOSEPOLY,  [-1.5, -0.5])]
+        codes, verts = zip(*path_data)
+        path = mpath.Path(verts, codes)
+        patch = mpatches.PathPatch(path, transform=self.ax.transData)
+        return patch
+
+    def plot_topoplot(self, area=None):
+        """Displays the topoplot over the given axis, and cut. 
+
+        Args:
+            area ([type], optional): [description]. Defaults to None.
+        """
         vmax = np.nanmax(np.abs(self.topodist['zz']))
         vmin = -vmax
         if vmin-vmax != 0:
             im = self.ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
                                     self.topodist['zz'], vmin=vmin, vmax=vmax,
                                     cmap='coolwarm', antialiaseds=True)  # , shading='gouraud')
-            if area == 'lambert' and self.projection == 'lambert':
-                path_data = [
-                    (mpath.Path.MOVETO, [-1.5, 0.6]),
-                    (mpath.Path.CURVE4, [0, 1.5]),
-                    (mpath.Path.CURVE4, [0, 1.5]),
-                    (mpath.Path.CURVE4, [1.5, 0.6]),
-                    (mpath.Path.LINETO, [1.5, -0.1]),
-                    (mpath.Path.CURVE4, [1.5, -2]),
-                    (mpath.Path.CURVE4, [-1.5, -2]),
-                    (mpath.Path.CURVE4, [-1.5, -0.1]),
-                    (mpath.Path.CLOSEPOLY,  [-1.5, -0.5])]
-                codes, verts = zip(*path_data)
-                path = mpath.Path(verts, codes)
-                patch = mpatches.PathPatch(path, transform=self.ax.transData)
-            else:
-                patch = mpatches.Circle(
-                    (0, 0), radius=1, transform=self.ax.transData)
+            if area is not None:
+                if area == 'lambert' and self.eegarray.projection == 'lambert':
+                    patch = self.lambert_patch()
+                else:
+                    patch = mpatches.Circle(
+                        (0, 0), radius=1, transform=self.ax.transData)
             im.set_clip_path(patch)
 
-    def plot_connectivity(self, adjacency, symmetric=False):
+
+class HeadPlot(object):
+
+    def __init__(self, adjacency, eegarray, layout='ten_twenty', marker_size=0.03,
+                 projection='simple', ax=None):
+        self.adjacency = adjacency
+        self.projection = projection
+        self.marker_size = marker_size
+        self.layout = layout
+        if ax is not None:
+            self.ax = ax
+        else:
+            _, self.ax = plt.subplots()
+        if type(eegarray) == list:
+            self.eegarray = EEGarray(eegarray, layout=self.layout, projection=self.projection,
+                                     marker_size=self.marker_size, ax=self.ax)
+        else:
+            self.eegarray = eegarray
+
+    def plot_topo(self):
+        self.topo = Topoplot(self.adjacency, self.eegarray, self.ax)
+        self.topo.plot_topoplot(area='lambert')
+
+    def show_head(self):
+        self.ax.add_collection(Head())
+
+    def show_array(self):
+        self.ax.add_collection(self.eegarray)
+
+    def connect(self, symmetric=False):
         # check for square matrix
-        adjacency = adjacency.copy()  # safeguard for pointer passing
+        adjacency = self.adjacency.copy()  # safeguard for pointer passing
         nchan = adjacency.shape[0]
         assert nchan == adjacency.shape[1]
         # arrows = []
@@ -428,8 +536,8 @@ class EEGarray(PatchCollection):
                         # TODO: check for bilateral
                         symmetric = True
                         arws = '<|-|>'
-                    posA = np.asarray(self.convert_sph_xy(self.pos[ch_x], 1))
-                    posB = np.asarray(self.convert_sph_xy(self.pos[ch_y], 1))
+                    posA = np.asarray(self.eegarray.get_ch_pos(ch_x))
+                    posB = np.asarray(self.eegarray.get_ch_pos(ch_y))
                     cmap = cm.get_cmap('jet')  # correct for colors in arrows
                     self.ax.annotate("",
                                      xy=posA, xycoords='data',
@@ -452,36 +560,41 @@ class EEGarray(PatchCollection):
         #                         antialiaseds=True)
 
 
-def plot_head_diagram(pac_object, bands=DEFAULT_BANDS, show_electrodes=True,
-                      savefig=None):
-    """Plots a head diagram - topoplot. 
+def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
+                           show_head=True, show_connect=True, projection='simple',
+                           savefig=None):
+    """Shows the connectivity diagram over head plots 
 
     Args:
-        pac_object ([type]): [description]
-        bands ([type], optional): [description]. Defaults to DEFAULT_BANDS.
+        pac_connect (PAC_object): Can be PAC_object or PAC_connect.
+        band_select ([type]): [description]
+        show_topo (bool, optional): [description]. Defaults to True.
         show_electrodes (bool, optional): [description]. Defaults to True.
-        savefig ([type], optional): [description]. Defaults to None.
+        show_head (bool, optional): [description]. Defaults to True.
+        show_connect (bool, optional): [description]. Defaults to True.
     """
     mm = pac_object.extract_band_connectivity(bands)
     bands_phase = mm.keys()
     bands_amp = mm[list(bands_phase)[0]].keys()
     fig, axes = plt.subplots(len(bands_amp), len(bands_phase),
                              figsize=(4*len(bands_phase), 4*len(bands_amp)))
-    for i, band in enumerate(bands_phase):
-        for j, bj in enumerate(bands_amp):
-            adjacenty = mm[band][bj]
-            array = EEGarray(pac_object.channels, projection='lambert',
-                             marker_size=0.03, ax=axes[j][i])
-            array.topoplot(adjacenty)
-            array.plot_topoplot(array.topodist['zz'], area='lambert')
-            # if show_electrodes:
-            axes[j][i].add_collection(Head())
-            array.plot_connectivity(adjacenty, symmetric=False)
+    for i, b_pha in enumerate(bands_phase):
+        for j, b_amp in enumerate(bands_amp):
+            headplot = HeadPlot(mm, pac_object.electrodes,
+                                projection=projection, ax=axes[j][i])
+            if show_topo:
+                headplot.plot_topo()
+            if show_head:
+                headplot.show_head()
+            if show_electrodes:
+                headplot.show_array()
+            if show_connect:
+                headplot.connect()
             axes[j][i].set_aspect(1)
             axes[j][i].set_ylim(-1.5, 1.3)
             axes[j][i].set_xlim(-1.5, 1.5)
             axes[j][i].axis('off')
-            axes[j][i].set_title(f'{band}-{bj}')
+            axes[j][i].set_title(f'{b_pha}-{b_amp}')
     plt.show()
     plt.tight_layout()
     if savefig is not None:
