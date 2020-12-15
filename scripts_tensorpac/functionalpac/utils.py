@@ -86,26 +86,6 @@ class PAC_object(object):
                 else:
                     self.purged_mat[i, j] = self.pac_mat[i, j]
 
-
-class PAC_connect(PAC_object):
-    """An implementation of PAC_object that focuses on utilities for managing
-    connectivity matrices. 
-
-    Args:
-        pac_connect ([numpy.ndarray]): PAC connectivity hipermatrix, of size
-            n_chan x n_chan x freqs_pha x freqs_amp 
-        channels (list, numpy.ndarray]): List of channels recorded
-        fs (int, optional): Sampling frequency of the EEG. Defaults to 500.
-        f_pha (tuple, optional): Frequency range for phase signals. Defaults to (2, 20).
-        f_amp (tuple, optional): Frequency range for amplitude signals. Defaults to (15, 120).
-    """
-
-    def __init__(self, pac_connect, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
-        """Construction method
-        """
-        PAC_object.__init__(self, pac_mat=pac_connect, channels=channels, fs=fs,
-                            f_pha=f_pha, f_amp=f_amp)
-
     def check_bands(self, f, bands=DEFAULT_BANDS):
         for band in bands:
             if f > bands[band][0] and f <= bands[band][1]:
@@ -145,6 +125,26 @@ class PAC_connect(PAC_object):
                 cosa[famp] = matrix.T
             bc[fas] = cosa
         return bc
+
+
+class PAC_connect(PAC_object):
+    """An implementation of PAC_object that focuses on utilities for managing
+    connectivity matrices. 
+
+    Args:
+        pac_connect ([numpy.ndarray]): PAC connectivity hipermatrix, of size
+            n_chan x n_chan x freqs_pha x freqs_amp 
+        channels (list, numpy.ndarray]): List of channels recorded
+        fs (int, optional): Sampling frequency of the EEG. Defaults to 500.
+        f_pha (tuple, optional): Frequency range for phase signals. Defaults to (2, 20).
+        f_amp (tuple, optional): Frequency range for amplitude signals. Defaults to (15, 120).
+    """
+
+    def __init__(self, pac_connect, channels, fs=500, f_pha=(2, 20), f_amp=(15, 120)):
+        """Construction method
+        """
+        PAC_object.__init__(self, pac_mat=pac_connect, channels=channels, fs=fs,
+                            f_pha=f_pha, f_amp=f_amp)
 
 
 # from sklearn.decomposition import PCA, SparsePCA
