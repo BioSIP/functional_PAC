@@ -84,7 +84,7 @@ class BandConnectivityPlotter(object):
                           'Epsilon': (100, 200)}
         if cmap == 'coldhot':
             self.cmap = LinearSegmentedColormap(
-                'coldhot', _pigtailed_cmap(cm.hot))
+                'coldhot', _pigtailed_cmap(cm.get_cmap('hot')))
         else:
             self.cmap = cm.get_cmap(cmap)
 
@@ -540,7 +540,7 @@ class HeadPlot(object):
         nchan = adjacency.shape[0]
         assert nchan == adjacency.shape[1]
         # arrows = []
-        total = np.sum(np.isnan(adjacency) == False)
+        #total = np.sum(np.isnan(adjacency) == False)
         # ix = 0
         cmap = cm.get_cmap('coolwarm')
         vmin, vmax = self.topo.get_min_max()
@@ -557,7 +557,8 @@ class HeadPlot(object):
                         arws = '<|-|>'
                     posA = np.asarray(self.eegarray.get_ch_pos(ch_x))
                     posB = np.asarray(self.eegarray.get_ch_pos(ch_y))
-                    color = self.arrow_color(adjacency[ch_x, ch_y], vmin, vmax, cmap)
+                    color = self.arrow_color(
+                        adjacency[ch_x, ch_y], vmin, vmax, cmap)
                     self.ax.annotate("",
                                      xy=posA, xycoords='data',
                                      xytext=posB, textcoords='data',
@@ -613,7 +614,7 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
     ax.set_title(title)
     plt.show()
     plt.tight_layout()
-    if savefig!=None:
+    if savefig != None:
         fig.savefig(savefig)
 
 
@@ -655,9 +656,9 @@ def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show
             axes[j][i].set_xlim(-1.5, 1.5)
             axes[j][i].axis('off')
             axes[j][i].set_title(f'{b_pha}-{b_amp}')
-    if title!=None:
+    if title != None:
         fig.suptitle(title, fontsize=16)
     plt.show()
     plt.tight_layout()
-    if savefig!=None:
+    if savefig != None:
         fig.savefig(savefig)

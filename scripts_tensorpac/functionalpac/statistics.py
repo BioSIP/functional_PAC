@@ -16,6 +16,7 @@ class PermutationTesting(object):
                                     statistics. Defaults to False.
         n_jobs (int, optional): Number of jobs to be performed in parallel. Defaults to 10.
     """
+
     def __init__(self, n_iter=200, alpha=0.05, test=ttest_ind,
                  twosided=False, n_jobs=10):
         """Construction method
@@ -176,7 +177,7 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         """ Performs the Cluster-Based Permutation Testing for
         corrections. 
         It does: 
-        
+
         1. Computes the hypothesis testing between groups. 
         2. Sets the test threshold. 
         3. Cluster selection. 
@@ -205,7 +206,7 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         pval_arr = np.empty(stat.shape)*np.nan
         for ch_pha in range(stat.shape[0]):
             for ch_amp in range(stat.shape[1]):
-                arr, n_labs = label(bin_stat[ch_pha, ch_amp])
+                arr, _ = label(bin_stat[ch_pha, ch_amp])
                 # keep only supra-threshold clusters:
                 idx_sel = self.supra_threshold(arr)
                 if len(idx_sel > 1):
