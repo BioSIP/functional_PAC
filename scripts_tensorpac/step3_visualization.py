@@ -17,7 +17,7 @@ path = '/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/result
 # for ct in [10, 20, 30]:
     # for stimulus in [2, 8]:
 ct = 30
-stimulus = 8
+stimulus = 2
 formato='pdf'
 data = np.load(os.path.join(path, f's{stimulus}/p1e4_ct{ct}/quantile_p1e4_ct{ct}_s{stimulus}.npy'))
 
