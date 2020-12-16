@@ -4,16 +4,35 @@ import os
 import numpy as np
 from functionalpac.visualization import BandConnectivityPlotter
 from functionalpac.visualization import EEGarray, Head
+from functionalpac.utils import PAC_connect, DEFAULT_BANDS
+from functionalpac.visualization import plot_head_connectivity
 import matplotlib.pyplot as plt
 
-ct = 30
-stimulus = 2
-path = f'/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/defs/s{stimulus}/p1e4_ct{ct}'
-data = np.load(os.path.join(path, f'quantile_p1e4_ct{ct}_s{stimulus}.npy'))
+electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
+                            'FC1', 'FC2', 'FC6', 'T7', 'C3', 'C4', 'T8', 'TP9',
+                            'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
+                            'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
+path = '/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/defs/'
 
-th = 0.05
+# for ct in [10, 20, 30]:
+    # for stimulus in [2, 8]:
+ct = 30
+stimulus = 20
+formato='pdf'
+data = np.load(os.path.join(path, f's{stimulus}/p1e4_ct{ct}/quantile_p1e4_ct{ct}_s{stimulus}.npy'))
+
+# sets the alpha threshold: 
+th = 0.025 #twosided
 data_sig = data.copy()
 data_sig[(data > th) & (data < 1-th)] = np.nan
+data_sig = data_sig-0.5
+
+hey = PAC_connect(data_sig, electrodes)
+fig_route = os.path.join(path, f's{stimulus}/p1e4_ct{ct}/head_connect_ct{ct}_s{stimulus}.{formato}')
+plot_head_connectivity(hey, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
+                        show_head=True, show_connect=True, projection='lambert',
+                        savefig=fig_route, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
+
 #%% 
 
 plotter = BandConnectivityPlotter()
