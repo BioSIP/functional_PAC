@@ -2,9 +2,6 @@
 Visualization
 ===================================
 .. automodule:: visualization
-    :members:
-    :undoc-members:
-    :inherited-members:
 
 Matrix Visualization
 -----------------------------------
@@ -17,3 +14,10 @@ The cluster based permutation testing is based upon the works of [1] and [2].
 
 .. autoclass:: EEGarray
 	:members: convert_sph_xy, topoplot
+
+Utility functions
+^^^^^^^^^^^^^^^^^^
+.. autofunction:: plot_head_diagram
+
+.. autofunction:: plot_head_connectivity
+

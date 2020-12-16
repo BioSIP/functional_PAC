@@ -6,15 +6,11 @@ of
 
 Typical usage example
 ----------------------
-::
+.. code-block:: python
 
-    pac = Pac_object(pac_matrix)
-    pac_purg = pac.purge_decomposition()
+    plotter = BandConnectivityPlotter(electrode_list)
+    plotter.plot_connect_hipermatrix(pac_hipermatrix)
 
-..  _Google Python Style Guide:
-    http://google.github.io/styleguide/pyguide.html
-
-Util classes:
 -------------------
 """
 
@@ -30,7 +26,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 from scipy.stats import multivariate_normal
 
-from .utils import DEFAULT_BANDS
+from utils import DEFAULT_BANDS
 
 
 def plot_specific(hipermatriz, ch_x, ch_y, f_pha=(2, 20), f_amp=(15, 120)):
