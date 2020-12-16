@@ -443,7 +443,7 @@ class Topoplot(object):
             self.ax = ax
         else:
             _, self.ax = plt.subplots()
-        self.vrange=vrange
+        self.vrange = vrange
 
     def reset_topo(self):
         self.topodist['zz'] = np.zeros(self.topodist['xx'].shape)
@@ -467,8 +467,9 @@ class Topoplot(object):
             if np.isnan(self.adjacency[ch, ch]) == False:
                 mu = self.eegarray.get_ch_pos(ch)
                 topo_act = multivariate_normal.pdf(xxx, mean=mu, cov=cov)
-                # renormalize for maximum. 
-                topo_act = (topo_act-topo_act.min())/(topo_act.max()-topo_act.min())
+                # renormalize for maximum.
+                topo_act = (topo_act-topo_act.min()) / \
+                    (topo_act.max()-topo_act.min())
                 # 0.7 is a normalization coefficient just for visualization.
                 self.topodist['zz'] += 0.7*self.adjacency[ch, ch]*topo_act
 
@@ -495,7 +496,7 @@ class Topoplot(object):
         return patch
 
     def get_min_max(self):
-        if self.vrange==None:
+        if self.vrange == None:
             vmax = np.nanmax(np.abs(self.topodist['zz']))
             vmin = -vmax
             if vmin == vmax:
@@ -611,15 +612,18 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
     """Shows a simple head diagram from the adjacency matrix and electrode list
 
     Args:
-        adjacency ([type]): [description]
-        electrodes ([type]): [description]
-        show_topo (bool, optional): [description]. Defaults to True.
-        show_electrodes (bool, optional): [description]. Defaults to True.
-        show_head (bool, optional): [description]. Defaults to True.
-        show_connect (bool, optional): [description]. Defaults to True.
-        projection (str, optional): [description]. Defaults to 'simple'.
+        adjacency (array-like): Adjacency matrix
+        electrodes (array-like): List of channels to be included.
+        show_topo (bool, optional): Whether to show a topo-plot with intra-channel
+                                    connectivity. Defaults to True.
+        show_electrodes (bool, optional): Whether to show electrode position. Defaults to True.
+        show_head (bool, optional): Whether to show the head schema. Defaults to True.
+        show_connect (bool, optional): Whether to show a inter-channel connectivity 
+                                with arrows. Defaults to True.
+        projection (str, optional): Type of projection. Defaults to 'simple' (simple 
+        polar projection). Can be 'lambert' for azimuthal.
         title (str, optional): Title of the graph. Defaults to None.
-        savefig ([type], optional): [description]. Defaults to None.
+        savefig ([type], optional): Path to save the figure. Defaults to None.
     """
     fig, ax = plt.subplots()
     headplot = HeadPlot(adjacency, electrodes,
@@ -649,15 +653,19 @@ def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show
     """Shows the connectivity diagram over head plots 
 
     Args:
-        pac_object ([type]): [description]
-        bands ([type], optional): [description]. Defaults to DEFAULT_BANDS.
-        show_topo (bool, optional): [description]. Defaults to True.
-        show_electrodes (bool, optional): [description]. Defaults to True.
-        show_head (bool, optional): [description]. Defaults to True.
-        show_connect (bool, optional): [description]. Defaults to True.
-        projection (str, optional): [description]. Defaults to 'simple'.
+        pac_object (PAC_object): PAC_object or PAC_connect object describing the inter-
+        and intra-channel connectivity values. 
+        bands (dict, optional): Band definition dictionary. Defaults to DEFAULT_BANDS.
+        show_topo (bool, optional): Whether to show a topo-plot with intra-channel
+                                    connectivity. Defaults to True.
+        show_electrodes (bool, optional): Whether to show electrode position. Defaults to True.
+        show_head (bool, optional): Whether to show the head schema. Defaults to True.
+        show_connect (bool, optional): Whether to show a inter-channel connectivity 
+                                with arrows. Defaults to True.
+        projection (str, optional): Type of projection. Defaults to 'simple' (simple 
+        polar projection). Can be 'lambert' for azimuthal.
         title (str, optional): Title of the graph. Defaults to None.
-        savefig ([type], optional): [description]. Defaults to None.
+        savefig ([type], optional): Path to save the figure. Defaults to None.
     """
     mm = pac_object.extract_band_connectivity(bands)
     bands_phase = mm.keys()
