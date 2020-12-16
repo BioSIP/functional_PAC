@@ -4,7 +4,7 @@ This module has the PAC object, along with several utilities for dealing with
 PAC connectivity, data loading, etc. 
 
 Typical usage example
--------------------
+----------------------
 ::
 
     pac = Pac_object(pac_matrix)
