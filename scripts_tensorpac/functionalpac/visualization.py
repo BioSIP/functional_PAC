@@ -416,7 +416,7 @@ class EEGarray(PatchCollection):
 
 class Topoplot(object):
 
-    def __init__(self, adjacency, eegarray, cov=None, ax=None):
+    def __init__(self, adjacency, eegarray, cov=None, ax=None, vrange=None):
         self.adjacency = adjacency
         self.eegarray = eegarray
         xx, yy = np.meshgrid(np.arange(-1.5, 1.5, 0.05),
@@ -428,6 +428,7 @@ class Topoplot(object):
             self.ax = ax
         else:
             _, self.ax = plt.subplots()
+        self.vrange=vrange
 
     def reset_topo(self):
         self.topodist['zz'] = np.zeros(self.topodist['xx'].shape)
@@ -451,7 +452,10 @@ class Topoplot(object):
             if np.isnan(self.adjacency[ch, ch]) == False:
                 mu = self.eegarray.get_ch_pos(ch)
                 topo_act = multivariate_normal.pdf(xxx, mean=mu, cov=cov)
-                self.topodist['zz'] += self.adjacency[ch, ch]*topo_act
+                # renormalize for maximum. 
+                topo_act = (topo_act-topo_act.min())/(topo_act.max()-topo_act.min())
+                # 0.7 is a normalization coefficient just for visualization.
+                self.topodist['zz'] += 0.7*self.adjacency[ch, ch]*topo_act
 
     def lambert_patch(self):
         """Creates a custom Lambert patch for visualization of the lambert
@@ -476,10 +480,14 @@ class Topoplot(object):
         return patch
 
     def get_min_max(self):
-        vmax = np.nanmax(np.abs(self.topodist['zz']))
-        vmin = -vmax
-        if vmin == vmax:
-            vmin, vmax = -1, 1
+        if self.vrange==None:
+            vmax = np.nanmax(np.abs(self.topodist['zz']))
+            vmin = -vmax
+            if vmin == vmax:
+                vmin, vmax = -1, 1
+            self.vrange = (vmin, vmax)
+        else:
+            vmin, vmax = self.vrange
         return vmin, vmax
 
     def plot_topoplot(self, area=None):
@@ -504,7 +512,7 @@ class Topoplot(object):
 class HeadPlot(object):
 
     def __init__(self, adjacency, eegarray, layout='ten_twenty', marker_size=0.03,
-                 projection='simple', ax=None):
+                 projection='simple', ax=None, vrange=None):
         self.adjacency = adjacency
         self.projection = projection
         self.marker_size = marker_size
@@ -513,6 +521,7 @@ class HeadPlot(object):
             self.ax = ax
         else:
             _, self.ax = plt.subplots()
+        self.vrange = vrange
         if type(eegarray) == list:
             self.eegarray = EEGarray(eegarray, layout=self.layout, projection=self.projection,
                                      marker_size=self.marker_size, ax=self.ax)
@@ -521,7 +530,7 @@ class HeadPlot(object):
 
     def plot_topo(self):
         self.topo = Topoplot(self.adjacency, self.eegarray,
-                             cov=None, ax=self.ax)
+                             cov=None, ax=self.ax, vrange=self.vrange)
         self.topo.plot_topoplot(area='lambert')
 
     def show_head(self):
@@ -559,6 +568,7 @@ class HeadPlot(object):
                     posB = np.asarray(self.eegarray.get_ch_pos(ch_y))
                     color = self.arrow_color(
                         adjacency[ch_x, ch_y], vmin, vmax, cmap)
+                    # print(adjacency[ch_x, ch_y], color, vmin, vmax) # old-fashion debugging
                     self.ax.annotate("",
                                      xy=posA, xycoords='data',
                                      xytext=posB, textcoords='data',
@@ -620,7 +630,7 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
 
 def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
                            show_head=True, show_connect=True, projection='simple',
-                           title=None, savefig=None):
+                           title=None, vrange=None, savefig=None):
     """Shows the connectivity diagram over head plots 
 
     Args:
@@ -642,7 +652,7 @@ def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show
     for i, b_pha in enumerate(bands_phase):
         for j, b_amp in enumerate(bands_amp):
             headplot = HeadPlot(mm[b_pha][b_amp], pac_object.channels,
-                                projection=projection, ax=axes[j][i])
+                                projection=projection, ax=axes[j][i], vrange=vrange)
             if show_topo:
                 headplot.plot_topo()
             if show_head:
