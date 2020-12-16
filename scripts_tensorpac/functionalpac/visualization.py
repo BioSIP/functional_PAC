@@ -1,3 +1,23 @@
+"""Visualization Module
+
+This module implements the different visualization options for the 
+functional_PAC package. It has several options such as displaying an hiper-matrix
+of 
+
+Typical usage example
+----------------------
+::
+
+    pac = Pac_object(pac_matrix)
+    pac_purg = pac.purge_decomposition()
+
+..  _Google Python Style Guide:
+    http://google.github.io/styleguide/pyguide.html
+
+Util classes:
+-------------------
+"""
+
 import pickle
 
 import matplotlib.patches as mpatches
@@ -9,7 +29,6 @@ from matplotlib.collections import PatchCollection
 from matplotlib.colors import LinearSegmentedColormap
 from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 from scipy.stats import multivariate_normal
-from tensorpac import Pac
 
 from .utils import DEFAULT_BANDS
 
