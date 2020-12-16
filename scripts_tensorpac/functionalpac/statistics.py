@@ -6,17 +6,36 @@ from scipy.stats import rankdata, ttest_ind
 
 
 class PermutationTesting(object):
+    """Class for performing massive univariate permutation testing.
+
+    Args:
+        n_iter (int, optional): Number of iterations. Defaults to 200.
+        alpha (float, optional): Significance level for p-values. Defaults to 0.05.
+        test (function, optional): Type of statistical test. Defaults to ttest_ind.
+        twosided (bool, optional): Whether to use two-sided or one-sided 
+                                    statistics. Defaults to False.
+        n_jobs (int, optional): Number of jobs to be performed in parallel. Defaults to 10.
+    """
     def __init__(self, n_iter=200, alpha=0.05, test=ttest_ind,
-                 twosided=False, n_jobs=10, threshold_pac=None):
+                 twosided=False, n_jobs=10):
+        """Construction method
+        """
         self.test = test
         self.n_iter = n_iter
         self.alpha = alpha
         self.twosided = twosided
         self.n_jobs = n_jobs
-        assert 0 <= threshold_pac <= 1
-        self.threshold_pac = threshold_pac
 
     def permutation_testing(self, X, y, ref, arr):
+        """Performs an in-place iteration of permutation testing on X by permuting
+        the class vector y. Updates the ref and arr arrays. 
+
+        Args:
+            X (np.ndarray): Data array (n_samples, n_features)
+            y (list|np.ndarray): Label array to be permuted
+            ref (np.ndarray): Reference array for comparing in quantiles
+            arr (np.ndarray): Quantile array
+        """
         y_surr = np.random.permutation(y)
         stat_surr, _ = self.test(X[y_surr == 0],
                                  X[y_surr == 1])
@@ -24,6 +43,21 @@ class PermutationTesting(object):
         arr += ref > stat_surr
 
     def fit(self, X, y):
+        """Performs the permutation testing of the data array X and label
+        array y, using the parameters of the method. 
+
+        It does it by computing a canonical statistical testing (provided via
+        the :code:`self.test`). Afterwards, it performs :code:`self.n_iter` 
+        permutations to estimate the quantile where the canonical test statistical
+        is ranked. Afterward, it computes the uncorrected one or two-sided p-value. 
+
+        Args:
+            X (np.ndarray): Data array (n_samples, n_features)
+            y (np.ndarray): Label array (n_samples)
+
+        Returns:
+            [np.ndarray]: One or two-sided p-value array. 
+        """
         # compute stats
         stat, _ = self.test(X[y == 0], X[y == 1])
         # sets thresholds for umbralization
@@ -57,7 +91,9 @@ class ClusterBasedPermutationTesting(PermutationTesting):
                  test=ttest_ind, twosided=False, n_jobs=10, output='pval',
                  threshold_pac=0.9):
         PermutationTesting.__init__(self, n_iter, alpha, test, twosided,
-                                    n_jobs, threshold_pac=threshold_pac)
+                                    n_jobs)
+        assert 0 <= threshold_pac <= 1
+        self.threshold_pac = threshold_pac
         self.cluster_threshold = cluster_threshold
         assert output in ['both', 'pval', 'quantile']
         self.output = output
@@ -150,6 +186,7 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         Args:
             X (numpy.ndarray): [description]
             y (numpy.ndarray): [description]
+            verbose (bool): Sets whether to print debugging messages.
         """
         # compute stats
         if self.threshold_pac is not None:

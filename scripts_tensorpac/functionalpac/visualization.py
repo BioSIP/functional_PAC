@@ -375,7 +375,7 @@ class EEGarray(PatchCollection):
 
     def get_chname_pos(self, chname):
         # TODO: implement
-        return np.asarray(self.convert_sph_xy(self.pos[ch], 1))
+        return np.asarray(self.convert_sph_xy(self.pos[chname], 1))
 
 
 # def plot_head_diagram(pac_object, bands=DEFAULT_BANDS, show_electrodes=True,
@@ -475,16 +475,20 @@ class Topoplot(object):
         patch = mpatches.PathPatch(path, transform=self.ax.transData)
         return patch
 
+    def get_min_max(self):
+        vmax = np.nanmax(np.abs(self.topodist['zz']))
+        vmin = -vmax
+        if vmin == vmax:
+            vmin, vmax = -1, 1
+        return vmin, vmax
+
     def plot_topoplot(self, area=None):
         """Displays the topoplot over the given axis, and cut. 
 
         Args:
             area ([type], optional): [description]. Defaults to None.
         """
-        vmax = np.nanmax(np.abs(self.topodist['zz']))
-        vmin = -vmax
-        if vmin == vmax:
-            vmin, vmax = -1, 1
+        vmin, vmax = self.get_min_max()
         im = self.ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
                                 self.topodist['zz'], vmin=vmin, vmax=vmax,
                                 cmap='coolwarm', antialiaseds=True)  # , shading='gouraud')
@@ -526,6 +530,10 @@ class HeadPlot(object):
     def show_array(self):
         self.ax.add_collection(self.eegarray)
 
+    def arrow_color(self, value, vmin, vmax, cmap=cm.get_cmap('jet')):
+        val = (value-vmin)/(vmax-vmin)
+        return cmap(val)
+
     def connect(self, symmetric=False):
         # check for square matrix
         adjacency = self.adjacency.copy()  # safeguard for pointer passing
@@ -533,7 +541,9 @@ class HeadPlot(object):
         assert nchan == adjacency.shape[1]
         # arrows = []
         total = np.sum(np.isnan(adjacency) == False)
-        ix = 0
+        # ix = 0
+        cmap = cm.get_cmap('coolwarm')
+        vmin, vmax = self.topo.get_min_max()
         for ch_x in range(nchan):
             rang = range(ch_x, nchan) if symmetric else range(nchan)
             for ch_y in rang:
@@ -547,12 +557,12 @@ class HeadPlot(object):
                         arws = '<|-|>'
                     posA = np.asarray(self.eegarray.get_ch_pos(ch_x))
                     posB = np.asarray(self.eegarray.get_ch_pos(ch_y))
-                    cmap = cm.get_cmap('jet')  # correct for colors in arrows
+                    color = self.arrow_color(adjacency[ch_x, ch_y], vmin, vmax, cmap)
                     self.ax.annotate("",
                                      xy=posA, xycoords='data',
                                      xytext=posB, textcoords='data',
-                                     arrowprops=dict(arrowstyle=arws, color=cmap(ix),
-                                                     fc=cmap(ix), ec=cmap(ix)))
+                                     arrowprops=dict(arrowstyle=arws, color=color,
+                                                     fc=color, ec=color))
                     # arrows.append(mpatches.ConnectionPatch(
                     #     xyA=posA, xyB=posB, coordsA='data', axesA=plt.gca(),
                     #     axesB=plt.gca(), arrowstyle='-|>', fc=cmap(ix), ec=cmap(ix)
@@ -563,7 +573,7 @@ class HeadPlot(object):
                     # head_width=.707, tail_width=.1), mutation_scale=.1))#,
                     # connectionstyle='angle3'
                     # arrowstyle="-|>", mutation_scale=.2))
-                    ix = ix + 1/total
+                    # ix = ix + 1/total
         # self.patches = self.patches+arrows
         # PatchCollection.__init__(self, self.patches, match_original=True,
         #                         antialiaseds=True)
@@ -600,12 +610,10 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
     ax.set_ylim(-1.5, 1.3)
     ax.set_xlim(-1.5, 1.5)
     ax.axis('off')
-    ax.set_title(f'{b_pha}-{b_amp}')
+    ax.set_title(title)
     plt.show()
     plt.tight_layout()
-    if title is not None:
-        fig.suptitle(title, fontsize=16)
-    if savefig is not None:
+    if savefig!=None:
         fig.savefig(savefig)
 
 
@@ -629,7 +637,7 @@ def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show
     bands_phase = mm.keys()
     bands_amp = mm[list(bands_phase)[0]].keys()
     fig, axes = plt.subplots(len(bands_amp), len(bands_phase),
-                             figsize=(4*len(bands_phase), 4*len(bands_amp)))
+                             figsize=(4*len(bands_phase), 4*len(bands_amp)+2))
     for i, b_pha in enumerate(bands_phase):
         for j, b_amp in enumerate(bands_amp):
             headplot = HeadPlot(mm[b_pha][b_amp], pac_object.channels,
@@ -647,9 +655,9 @@ def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show
             axes[j][i].set_xlim(-1.5, 1.5)
             axes[j][i].axis('off')
             axes[j][i].set_title(f'{b_pha}-{b_amp}')
+    if title!=None:
+        fig.suptitle(title, fontsize=16)
     plt.show()
     plt.tight_layout()
-    if title is not None:
-        fig.suptitle(title, fontsize=16)
-    if savefig is not None:
+    if savefig!=None:
         fig.savefig(savefig)
