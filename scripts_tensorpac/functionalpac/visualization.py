@@ -393,42 +393,6 @@ class EEGarray(PatchCollection):
         return np.asarray(self.convert_sph_xy(self.pos[chname], 1))
 
 
-# def plot_head_diagram(pac_object, bands=DEFAULT_BANDS, show_electrodes=True,
-#                       savefig=None):
-#     """Plots a head diagram - topoplot.
-
-#     Args:
-#         pac_object ([type]): [description]
-#         bands ([type], optional): [description]. Defaults to DEFAULT_BANDS.
-#         show_electrodes (bool, optional): [description]. Defaults to True.
-#         savefig ([type], optional): [description]. Defaults to None.
-#     """
-#     mm = pac_object.extract_band_connectivity(bands)
-#     bands_phase = mm.keys()
-#     bands_amp = mm[list(bands_phase)[0]].keys()
-#     fig, axes = plt.subplots(len(bands_amp), len(bands_phase),
-#                              figsize=(4*len(bands_phase), 4*len(bands_amp)))
-#     for i, band in enumerate(bands_phase):
-#         for j, bj in enumerate(bands_amp):
-#             adjacenty = mm[band][bj]
-#             array = EEGarray(pac_object.channels, projection='lambert',
-#                              marker_size=0.03, ax=axes[j][i])
-#             array.topoplot(adjacenty)
-#             array.plot_topoplot(array.topodist['zz'], area='lambert')
-#             # if show_electrodes:
-#             axes[j][i].add_collection(Head())
-#             array.plot_connectivity(adjacenty, symmetric=False)
-#             axes[j][i].set_aspect(1)
-#             axes[j][i].set_ylim(-1.5, 1.3)
-#             axes[j][i].set_xlim(-1.5, 1.5)
-#             axes[j][i].axis('off')
-#             axes[j][i].set_title(f'{band}-{bj}')
-#     plt.show()
-#     plt.tight_layout()
-#     if savefig is not None:
-#         fig.savefig(savefig)
-
-
 class Topoplot(object):
 
     def __init__(self, adjacency, eegarray, cov=None, ax=None, vrange=None):
