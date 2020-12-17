@@ -1,3 +1,22 @@
+"""Statistics Module
+
+This module implements the statistics for permutation testing and the 
+cluster-based permutation testing used in the functional_PAC. It has many options
+for setting one and two-sided comparisons, different alpha levels and different
+statistics. 
+
+Typical usage example
+----------------------
+.. code-block:: python
+
+    X = dataset['data']
+    y = dataset['labels']
+    pm = PermutationTesting(n_iter=1000, alpha=0.05, twosided=True)
+    pm.fit(X, y)
+
+-------------------
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 from joblib import Parallel, delayed

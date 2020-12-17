@@ -650,11 +650,11 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
 def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
                            show_head=True, show_connect=True, projection='simple',
                            title=None, vrange=None, savefig=None):
-    """Shows the connectivity diagram over head plots 
+    """Shows the connectivity diagram over an array of head plots of shape 
 
     Args:
         pac_object (PAC_object): PAC_object or PAC_connect object describing the inter-
-        and intra-channel connectivity values. 
+                                    and intra-channel connectivity values. 
         bands (dict, optional): Band definition dictionary. Defaults to DEFAULT_BANDS.
         show_topo (bool, optional): Whether to show a topo-plot with intra-channel
                                     connectivity. Defaults to True.
