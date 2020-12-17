@@ -5,7 +5,7 @@ import numpy as np
 from functionalpac.visualization import BandConnectivityPlotter
 from functionalpac.visualization import EEGarray, Head
 from functionalpac.utils import PAC_connect, DEFAULT_BANDS
-from functionalpac.visualization import plot_head_connectivity
+from functionalpac.visualization import plot_head_connectivity,plot_head_diagram
 import matplotlib.pyplot as plt
 
 electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
@@ -17,7 +17,7 @@ path = '/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/result
 # for ct in [10, 20, 30]:
     # for stimulus in [2, 8]:
 ct = 30
-stimulus = 2
+stimulus = 8
 formato='pdf'
 data = np.load(os.path.join(path, f's{stimulus}/p1e4_ct{ct}/quantile_p1e4_ct{ct}_s{stimulus}.npy'))
 
@@ -28,10 +28,14 @@ data_sig[(data > th) & (data < 1-th)] = np.nan
 data_sig = data_sig-0.5
 
 hey = PAC_connect(data_sig, electrodes)
+# mm = hey.extract_band_connectivity(DEFAULT_BANDS)
+# plot_head_diagram(mm['Alpha']['Gamma'], electrodes, show_topo=True, show_electrodes=True,
+#                       show_head=True, show_connect=True, projection='lambert', theme='dark',
+#                       show_brain=True, title=None, savefig=None)
 fig_route = os.path.join(path, f's{stimulus}/p1e4_ct{ct}/head_connect_ct{ct}_s{stimulus}.{formato}')
-plot_head_connectivity(hey, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
+plot_head_connectivity(hey, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True, theme='dark',
                         show_head=True, show_connect=True, projection='lambert', vrange=(-.5, .5),
-                        show_brain=True, savefig=None, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
+                        show_brain=True, savefig=fig_route, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
 
 #%% 
 

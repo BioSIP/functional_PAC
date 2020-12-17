@@ -445,10 +445,10 @@ class Topoplot(object):
             [matplotlib.mpatches]: Patch for shape of lambert cut
         """
         path_data = [
-            (mpath.Path.MOVETO, [-1.5, 0.6]),
-            (mpath.Path.CURVE4, [0, 1.5]),
-            (mpath.Path.CURVE4, [0, 1.5]),
-            (mpath.Path.CURVE4, [1.5, 0.6]),
+            (mpath.Path.MOVETO, [-1.5, 0.8]),
+            (mpath.Path.CURVE4, [0, 1.77]),
+            (mpath.Path.CURVE4, [0, 1.77]),
+            (mpath.Path.CURVE4, [1.5, 0.8]),
             (mpath.Path.LINETO, [1.5, -0.1]),
             (mpath.Path.CURVE4, [1.5, -2]),
             (mpath.Path.CURVE4, [-1.5, -2]),
@@ -504,11 +504,13 @@ class SVGPatch(object):
 
 class BrainPatch(SVGPatch):
 
-    def __init__(self, projection='lambert', alpha=.5, clip=None, color=None):
+    def __init__(self, projection='lambert', alpha=.5, clip=None, theme='light', color=None):
         self.projection = projection
+        assert theme in ['light', 'dark']
         self.route = os.path.dirname(__file__)
-        if projection=='lambert':
-            brainpath = os.path.join(self.route, f'data/brain_{self.projection}')
+        if projection == 'lambert':
+            brainpath = os.path.join(
+                self.route, f'data/brain_{self.projection}_{theme}')
             self.collection = self.load_patch(brainpath)
             self.collection.set_alpha(alpha)
         else:
@@ -523,11 +525,13 @@ class BrainPatch(SVGPatch):
 class HeadPlot(object):
 
     def __init__(self, adjacency, eegarray, layout='ten_twenty', marker_size=0.03,
-                 projection='simple', ax=None, vrange=None):
+                 projection='simple', theme='light', ax=None, vrange=None):
         self.adjacency = adjacency
         self.projection = projection
         self.marker_size = marker_size
         self.layout = layout
+        assert theme in ['light', 'dark']
+        self.theme = theme
         if ax is not None:
             self.ax = ax
         else:
@@ -551,9 +555,15 @@ class HeadPlot(object):
         self.ax.add_collection(self.eegarray)
 
     def show_brainpatch(self, alpha=.5):
-        brain_template = BrainPatch(alpha=alpha, clip=self.topo.lambert_patch())
+        brain_template = BrainPatch(alpha=alpha, theme=self.theme,
+                                    clip=self.topo.lambert_patch())
         if brain_template.collection:
             brain_template.collection.set_transform(self.ax.transData)
+            if self.theme=='dark':
+                kwargs = {'edgecolor': 'white', 'facecolor':'grey'}
+            else:       
+                kwargs = {'edgecolor': 'grey', 'facecolor':'red'}
+            brain_template.collection.set(**kwargs)
             self.ax.add_collection(brain_template.collection)
 
     def arrow_color(self, value, vmin, vmax, cmap=cm.get_cmap('jet')):
@@ -608,8 +618,8 @@ class HeadPlot(object):
 
 
 def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=True,
-                      show_head=True, show_connect=True, projection='simple',
-                      show_brain = True, title=None, savefig=None):
+                      show_head=True, show_connect=True, projection='simple', theme='light',
+                      show_brain=True, title=None, savefig=None):
     """Shows a simple head diagram from the adjacency matrix and electrode list
 
     Args:
@@ -627,7 +637,7 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
         savefig ([type], optional): Path to save the figure. Defaults to None.
     """
     fig, ax = plt.subplots()
-    headplot = HeadPlot(adjacency, electrodes,
+    headplot = HeadPlot(adjacency, electrodes, theme=theme,
                         projection=projection, ax=ax)
     if show_topo:
         headplot.plot_topo()
@@ -640,7 +650,7 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
     if show_connect:
         headplot.connect()
     ax.set_aspect(1)
-    ax.set_ylim(-1.5, 1.3)
+    ax.set_ylim(-1.6, 1.5)
     ax.set_xlim(-1.5, 1.5)
     ax.axis('off')
     ax.set_title(title)
@@ -651,7 +661,7 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
 
 
 def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
-                           show_head=True, show_connect=True, projection='simple',
+                           show_head=True, show_connect=True, projection='simple', theme='light',
                            show_brain=True, title=None, vrange=None, savefig=None):
     """Shows the connectivity diagram over an array of head plots of shape 
 
@@ -677,7 +687,7 @@ def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show
                              figsize=(4*len(bands_phase), 4*len(bands_amp)+2))
     for i, b_pha in enumerate(bands_phase):
         for j, b_amp in enumerate(bands_amp):
-            headplot = HeadPlot(mm[b_pha][b_amp], pac_object.channels,
+            headplot = HeadPlot(mm[b_pha][b_amp], pac_object.channels, theme=theme,
                                 projection=projection, ax=axes[j][i], vrange=vrange)
             if show_topo:
                 headplot.plot_topo()
