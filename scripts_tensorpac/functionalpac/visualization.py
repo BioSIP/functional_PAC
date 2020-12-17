@@ -398,8 +398,8 @@ class Topoplot(object):
     def __init__(self, adjacency, eegarray, cov=None, ax=None, vrange=None):
         self.adjacency = adjacency
         self.eegarray = eegarray
-        xx, yy = np.meshgrid(np.arange(-1.5, 1.5, 0.05),
-                             np.arange(-1.5, 1.5, 0.05))
+        xx, yy = np.meshgrid(np.arange(-1.6, 1.6, 0.05),
+                             np.arange(-1.6, 1.6, 0.05))
         zz = np.zeros(xx.shape)
         self.topodist = dict(xx=xx, yy=yy, zz=zz)
         self.compute_topoplot(cov=cov)
@@ -504,7 +504,7 @@ class SVGPatch(object):
 
 class BrainPatch(SVGPatch):
 
-    def __init__(self, projection='lambert', alpha=.5, clip=None):
+    def __init__(self, projection='lambert', alpha=.5, clip=None, color=None):
         self.projection = projection
         self.route = os.path.dirname(__file__)
         if projection=='lambert':
@@ -516,6 +516,8 @@ class BrainPatch(SVGPatch):
         if clip:
             self.collection.set_clip_path(clip)
             self.collection.set_clip_on(True)
+        if color:
+            self.collection.set_color(color)
 
 
 class HeadPlot(object):
