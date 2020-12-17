@@ -36,7 +36,7 @@ class PermutationTesting(object):
         n_jobs (int, optional): Number of jobs to be performed in parallel. Defaults to 10.
     """
 
-    def __init__(self, n_iter=200, alpha=0.05, test=ttest_ind,
+    def __init__(self, n_iter=200, alpha=0.05, test=ttest_ind, output='pval',
                  twosided=False, n_jobs=10):
         """Construction method
         """
@@ -45,6 +45,8 @@ class PermutationTesting(object):
         self.alpha = alpha
         self.twosided = twosided
         self.n_jobs = n_jobs
+        assert output in ['both', 'pval', 'quantile']
+        self.output = output
 
     def permutation_testing(self, X, y, ref, arr):
         """Performs an in-place iteration of permutation testing on X by permuting
@@ -72,7 +74,7 @@ class PermutationTesting(object):
         is ranked. Afterward, it computes the uncorrected one or two-sided p-value. 
 
         Args:
-            X (np.ndarray): Data array (n_samples, n_features)
+            X (np.ndarray): Data array (n_samples, n_chan, n_chan, n_features, n_features)
             y (np.ndarray): Label array (n_samples)
 
         Returns:
@@ -95,13 +97,18 @@ class PermutationTesting(object):
                         delayed(self.permutation_testing)(X[:, ch_x, ch_y], y, stat[ch_x, ch_y], pval_arr[ch_x, ch_y]) for i in range(self.n_iter))
 
         pval_arr = pval_arr/self.n_iter
-        if self.twosided:
-            pval_arr[(pval_arr >= th) & (pval_arr <= 1-th)] = np.nan
-            pval_arr[pval_arr < th] = -pval_arr[pval_arr < th]
-            pval_arr[pval_arr > 1-th] = 1-pval_arr[pval_arr > 1-th]
-        else:
-            pval_arr[pval_arr < 1-self.alpha] = np.nan
-            pval_arr[pval_arr > 1-self.alpha] = 1-pval_arr[pval_arr > 1-th]
+        if self.output == 'quantile' or self.output == 'both':
+            quantile_arr = pval_arr.copy()
+        if self.output == 'pval' or self.output == 'both':
+            if self.twosided:
+                pval_arr[(pval_arr >= th) & (pval_arr <= 1-th)] = np.nan
+                pval_arr[pval_arr < th] = -pval_arr[pval_arr < th]
+                pval_arr[pval_arr > 1-th] = 1-pval_arr[pval_arr > 1-th]
+            else:
+                pval_arr[pval_arr < 1-self.alpha] = np.nan
+                pval_arr[pval_arr > 1-self.alpha] = 1-pval_arr[pval_arr > 1-th]
+        if self.output == 'both':
+            pval_arr = (pval_arr, quantile_arr)
         return pval_arr
 
 
@@ -110,13 +117,11 @@ class ClusterBasedPermutationTesting(PermutationTesting):
     def __init__(self, n_iter=200, alpha=0.05, cluster_threshold=20,
                  test=ttest_ind, twosided=False, n_jobs=10, output='pval',
                  threshold_pac=0.9):
-        PermutationTesting.__init__(self, n_iter, alpha, test, twosided,
+        PermutationTesting.__init__(self, n_iter, alpha, test, output, twosided,
                                     n_jobs)
         assert 0 <= threshold_pac <= 1
         self.threshold_pac = threshold_pac
         self.cluster_threshold = cluster_threshold
-        assert output in ['both', 'pval', 'quantile']
-        self.output = output
 
     def mwu_vectorized(self, x1, x2):
         """Computes the two-sided Mann-Whitney-Wilcoxon U-Test
@@ -204,8 +209,8 @@ class ClusterBasedPermutationTesting(PermutationTesting):
         5. Permutation testing and significance estimation. 
 
         Args:
-            X (numpy.ndarray): [description]
-            y (numpy.ndarray): [description]
+            X (np.ndarray): Data array (n_samples, n_chan, n_chan, n_features, n_features)
+            y (np.ndarray): Label array (n_samples)
             verbose (bool): Sets whether to print debugging messages.
         """
         # compute stats
@@ -228,7 +233,7 @@ class ClusterBasedPermutationTesting(PermutationTesting):
                 arr, _ = label(bin_stat[ch_pha, ch_amp])
                 # keep only supra-threshold clusters:
                 idx_sel = self.supra_threshold(arr)
-                if len(idx_sel > 1):
+                if len(idx_sel >= 1):
                     for ix in idx_sel[1:]:
                         # save regions:
                         select = arr == ix
@@ -242,6 +247,8 @@ class ClusterBasedPermutationTesting(PermutationTesting):
                         with Parallel(n_jobs=self.n_jobs, prefer="threads", verbose=vrb_lv) as parallel:
                             parallel(
                                 delayed(self.permutation_testing)(X[:, ch_pha, ch_amp], y, cluster_stat, pval_arr[ch_pha, ch_amp], select) for i in range(self.n_iter))
+                else:
+                    print('No supra-threshold clusters')
 
         pval_arr = pval_arr/self.n_iter
         if self.output == 'quantile' or self.output == 'both':
