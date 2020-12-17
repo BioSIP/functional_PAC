@@ -58,6 +58,8 @@ Permutation testing works by estimating the empirical quantile by:
 5. Repeat steps 2-3 surrogate procedure :math:`N` times
 6. The empirical quantile for each feature is :math:`z_{emp}/N`.
 
+In :code:`functionalpac` it is implemented via the :py:class:`statistics.PermutationTesting`. class.
+
 Cluster Based Statistic
 -----------------------
 
@@ -100,6 +102,8 @@ becomes:
    clusters positions in :math:`z_{emp}`.
 8. Repeat steps 6-7 surrogate procedure :math:`N` times
 9. The empirical quantile for each feature is :math:`z_{emp}/N`.
+
+In :code:`functionalpac` it is implemented via the :py:class:`statistics.ClusterBasedPermutationTesting`. class.
 
 To demonstrate how these two methods work, we will perform a toy
 example:
@@ -212,7 +216,8 @@ many spurious areas across all frequencies. If this is the case only for
 a toy example with gaussian noise, what could not happen to the real
 case? There, there are many intra and inter-channel couplings, spurious
 peak, and inter-subject variability. Let’s check what happens when we
-apply permutation testing.
+apply permutation testing via the classes :py:class:`statistics.PermutationTesting` 
+and :py:class:`statistics.ClusterBasedPermutationTesting`.
 
 .. code:: ipython3
 
