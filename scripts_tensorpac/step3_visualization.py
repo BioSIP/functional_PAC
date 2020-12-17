@@ -31,7 +31,7 @@ hey = PAC_connect(data_sig, electrodes)
 fig_route = os.path.join(path, f's{stimulus}/p1e4_ct{ct}/head_connect_ct{ct}_s{stimulus}.{formato}')
 plot_head_connectivity(hey, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
                         show_head=True, show_connect=True, projection='lambert', vrange=(-.5, .5),
-                        savefig=fig_route, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
+                        show_brain=True, savefig=None, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
 
 #%% 
 
