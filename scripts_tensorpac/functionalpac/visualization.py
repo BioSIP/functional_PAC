@@ -15,7 +15,7 @@ Typical usage example
 """
 
 import pickle
-
+import os
 import matplotlib.patches as mpatches
 import matplotlib.path as mpath
 import matplotlib.pyplot as plt
@@ -26,7 +26,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 from scipy.stats import multivariate_normal
 
-from utils import DEFAULT_BANDS
+from .utils import DEFAULT_BANDS
 
 
 def plot_specific(hipermatriz, ch_x, ch_y, f_pha=(2, 20), f_amp=(15, 120)):
@@ -489,6 +489,35 @@ class Topoplot(object):
         im.set_clip_path(patch)
 
 
+class SVGPatch(object):
+    def __init__(self):
+        pass
+
+    def load_patch(self, name):
+        with open(name + '.patch', 'rb') as f:
+            return pickle.load(f)
+
+    def save_patch(self, obj, name):
+        with open(name + '.patch', 'wb') as f:
+            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+class BrainPatch(SVGPatch):
+
+    def __init__(self, projection='lambert', alpha=.5, clip=None):
+        self.projection = projection
+        self.route = os.path.dirname(__file__)
+        if projection=='lambert':
+            brainpath = os.path.join(self.route, f'data/brain_{self.projection}')
+            self.collection = self.load_patch(brainpath)
+            self.collection.set_alpha(alpha)
+        else:
+            self.collection = None
+        if clip:
+            self.collection.set_clip_path(clip)
+            self.collection.set_clip_on(True)
+
+
 class HeadPlot(object):
 
     def __init__(self, adjacency, eegarray, layout='ten_twenty', marker_size=0.03,
@@ -518,6 +547,12 @@ class HeadPlot(object):
 
     def show_array(self):
         self.ax.add_collection(self.eegarray)
+
+    def show_brainpatch(self, alpha=.5):
+        brain_template = BrainPatch(alpha=alpha, clip=self.topo.lambert_patch())
+        if brain_template.collection:
+            brain_template.collection.set_transform(self.ax.transData)
+            self.ax.add_collection(brain_template.collection)
 
     def arrow_color(self, value, vmin, vmax, cmap=cm.get_cmap('jet')):
         val = (value-vmin)/(vmax-vmin)
@@ -572,7 +607,7 @@ class HeadPlot(object):
 
 def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=True,
                       show_head=True, show_connect=True, projection='simple',
-                      title=None, savefig=None):
+                      show_brain = True, title=None, savefig=None):
     """Shows a simple head diagram from the adjacency matrix and electrode list
 
     Args:
@@ -594,6 +629,8 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
                         projection=projection, ax=ax)
     if show_topo:
         headplot.plot_topo()
+    if show_brain:
+        headplot.show_brainpatch(alpha=.3)
     if show_head:
         headplot.show_head()
     if show_electrodes:
@@ -613,7 +650,7 @@ def plot_head_diagram(adjacency, electrodes, show_topo=True, show_electrodes=Tru
 
 def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True,
                            show_head=True, show_connect=True, projection='simple',
-                           title=None, vrange=None, savefig=None):
+                           show_brain=True, title=None, vrange=None, savefig=None):
     """Shows the connectivity diagram over an array of head plots of shape 
 
     Args:
@@ -642,6 +679,8 @@ def plot_head_connectivity(pac_object, bands=DEFAULT_BANDS, show_topo=True, show
                                 projection=projection, ax=axes[j][i], vrange=vrange)
             if show_topo:
                 headplot.plot_topo()
+            if show_brain:
+                headplot.show_brainpatch(alpha=.3)
             if show_head:
                 headplot.show_head()
             if show_electrodes:
