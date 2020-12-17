@@ -1,6 +1,3 @@
-Statistics module tutorial
-=============================
-
 In this tutorial, we will focus on how to detect and visualize the
 inter-channel PAC modulation via cluster-based permutation testing, and
 compare it with the regular permutation testing.
@@ -261,13 +258,9 @@ apply permutation testing.
     [Parallel(n_jobs=10)]: Done   8 tasks      | elapsed:    0.0s
     [Parallel(n_jobs=10)]: Done   9 tasks      | elapsed:    0.0s
     [Parallel(n_jobs=10)]: Done  10 tasks      | elapsed:    0.0s
-	.
-	.	
-	.
-    [Parallel(n_jobs=10)]: Done 976 tasks      | elapsed:    1.4s
-    [Parallel(n_jobs=10)]: Done 977 tasks      | elapsed:    1.4s
-    [Parallel(n_jobs=10)]: Done 978 tasks      | elapsed:    1.4s
-    [Parallel(n_jobs=10)]: Done 979 tasks      | elapsed:    1.4s
+    .
+    .
+    .
     [Parallel(n_jobs=10)]: Done 980 tasks      | elapsed:    1.4s
     [Parallel(n_jobs=10)]: Done 981 tasks      | elapsed:    1.4s
     [Parallel(n_jobs=10)]: Done 1000 out of 1000 | elapsed:    1.4s finished
