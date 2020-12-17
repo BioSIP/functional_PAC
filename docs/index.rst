@@ -10,6 +10,7 @@ Welcome to Functional PAC's documentation!
    :maxdepth: 2
    :caption: Contents:
    
+   Tutorial_CBPT
    utils
    statistics
    visualization
