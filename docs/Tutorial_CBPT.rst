@@ -1,3 +1,6 @@
+Statistics module tutorial
+==========================
+
 In this tutorial, we will focus on how to detect and visualize the
 inter-channel PAC modulation via cluster-based permutation testing, and
 compare it with the regular permutation testing.
@@ -142,22 +145,14 @@ frequency between phase of 10 Hz and amplitude of 50 Hz.
                extent=(f_pha.min(), f_pha.max(), f_amp.min(), f_amp.max()))
     ax[1].set_xlabel('Freq. Phase (Hz)')
     ax[1].set_ylabel('Freq. Amp (Hz)')
-    ax[1].set_title('Canonical PAC (group 0)')
+    ax[1].set_title('Toy PAC (group 0)')
     
     # generate a toy pac for group 1
     ax[2].imshow(toy_pac(canonical_pac, 1), origin='lower', 
                extent=(f_pha.min(), f_pha.max(), f_amp.min(), f_amp.max()))
     ax[2].set_xlabel('Freq. Phase (Hz)')
     ax[2].set_ylabel('Freq. Amp (Hz)')
-    ax[2].set_title('Canonical PAC (group 1)')
-
-
-
-
-.. parsed-literal::
-
-    Text(0.5, 1.0, 'Canonical PAC (group 1)')
-
+    ax[2].set_title('Toy PAC (group 1)')
 
 
 
@@ -209,14 +204,6 @@ approach, only the cluster should be significant.
 
 
 
-
-.. parsed-literal::
-
-    Text(0.5, 1.0, 'p-value < 0.05')
-
-
-
-
 .. image:: images/output_7_1.png
 
 
@@ -257,10 +244,10 @@ apply permutation testing.
     [Parallel(n_jobs=10)]: Done   7 tasks      | elapsed:    0.0s
     [Parallel(n_jobs=10)]: Done   8 tasks      | elapsed:    0.0s
     [Parallel(n_jobs=10)]: Done   9 tasks      | elapsed:    0.0s
-    [Parallel(n_jobs=10)]: Done  10 tasks      | elapsed:    0.0s
     .
     .
     .
+    [Parallel(n_jobs=10)]: Done 979 tasks      | elapsed:    1.4s
     [Parallel(n_jobs=10)]: Done 980 tasks      | elapsed:    1.4s
     [Parallel(n_jobs=10)]: Done 981 tasks      | elapsed:    1.4s
     [Parallel(n_jobs=10)]: Done 1000 out of 1000 | elapsed:    1.4s finished
@@ -299,6 +286,44 @@ permutation testing and the cluster-based one:
 .. image:: images/output_11_1.png
 
 
+
 As it can be seen, the cluster-based approach is a much more
 conservative approach. However, it was able to clean all false positive
-positions and clusters.
+positions and clusters. This was not possible even if we choose a more
+restrictive alpha threshold for the regular permutation testing:
+
+.. code:: ipython3
+
+    fig, ax = plt.subplots(1,3)
+    # generate a toy pac for group 0
+    ax[0].imshow(res_pt[0,0]<0.01, origin='lower', 
+               extent=(f_pha.min(), f_pha.max(), f_amp.min(), f_amp.max()))
+    ax[0].set_xlabel('Freq. Phase (Hz)')
+    ax[0].set_ylabel('Freq. Amp (Hz)')
+    ax[0].set_title(f'res_pt < 0.01')
+    
+    # generate a toy pac for group 1
+    ax[1].imshow(res_pt[0,0]<0.001, origin='lower', 
+               extent=(f_pha.min(), f_pha.max(), f_amp.min(), f_amp.max()))
+    ax[1].set_xlabel('Freq. Phase (Hz)')
+    ax[1].set_ylabel('Freq. Amp (Hz)')
+    ax[1].set_title(f'res_cb < 0.001')
+    
+    # generate a toy pac for group 1
+    ax[2].imshow(res_pt[0,0]<0.0001, origin='lower', 
+               extent=(f_pha.min(), f_pha.max(), f_amp.min(), f_amp.max()))
+    ax[2].set_xlabel('Freq. Phase (Hz)')
+    ax[2].set_ylabel('Freq. Amp (Hz)')
+    ax[2].set_title(f'res_cb < 0.0001')
+
+
+
+
+.. parsed-literal::
+
+    Text(0.5, 1.0, 'res_cb < 0.0001')
+
+
+
+
+.. image:: images/output_13_1.png
