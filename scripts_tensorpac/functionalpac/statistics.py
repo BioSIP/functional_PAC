@@ -31,6 +31,8 @@ class PermutationTesting(object):
         n_iter (int, optional): Number of iterations. Defaults to 200.
         alpha (float, optional): Significance level for p-values. Defaults to 0.05.
         test (function, optional): Type of statistical test. Defaults to ttest_ind.
+        output (str, optional): Output of the fit_method, could be ['both', 'pval', 'quantile']. 
+                        Defaults to 'pval'.
         twosided (bool, optional): Whether to use two-sided or one-sided 
                                     statistics. Defaults to False.
         n_jobs (int, optional): Number of jobs to be performed in parallel. Defaults to 10.
@@ -113,10 +115,29 @@ class PermutationTesting(object):
 
 
 class ClusterBasedPermutationTesting(PermutationTesting):
+    """Class for performing cluster based permutation testing.
+
+    Args:
+        n_iter (int, optional): Number of iterations. Defaults to 200.
+        alpha (float, optional): Significance level for p-values. Defaults to 0.05.
+        cluster_threshold (int, optional): Cluster size threshold for keeping a cluster. Defaults to 20.
+        test (function, optional): Type of statistical test. Defaults to ttest_ind.
+        output (str, optional): Output of the fit_method, could be ['both', 'pval', 'quantile']. 
+                        Defaults to 'pval'.
+        twosided (bool, optional): Whether to use two-sided or one-sided 
+                                    statistics. Defaults to False.
+        n_jobs (int, optional): Number of jobs to be performed in parallel. Defaults to 10.
+        threshold_pac (float, optional): Sets the quantile threshold for discarding values 
+                                in the input PAC Objects. It is useful when the PAC has been 
+                                normalized or standardized, e.g. via permutation
+                                testing. Defaults to 0.9.
+    """
 
     def __init__(self, n_iter=200, alpha=0.05, cluster_threshold=20,
                  test=ttest_ind, twosided=False, n_jobs=10, output='pval',
                  threshold_pac=0.9):
+        """Construction method
+        """
         PermutationTesting.__init__(self, n_iter, alpha, test, output, twosided,
                                     n_jobs)
         assert 0 <= threshold_pac <= 1
