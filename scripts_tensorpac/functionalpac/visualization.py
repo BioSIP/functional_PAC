@@ -90,7 +90,7 @@ class BandConnectivityPlotter(object):
                              'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
         self.n_chan = len(self.channels)
         self.bands = bands
-        if channels == None:
+        if bands == None:
             self.bands = {'Delta': (0.5, 4),
                           'Theta': (4, 8),
                           'Alpha': (8, 12),
