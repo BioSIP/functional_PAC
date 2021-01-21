@@ -140,38 +140,90 @@ class BandConnectivityPlotter(object):
                 f'Frequency of {self.channels[channels[ix][1]]} receiving amplitude (Hz)')
             ax[ix].set_title(f'PAC connectivity')
 
-    def display_band_connectivity(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120)):
+    def plot_multiax_matrix(self, hipermatrix, ma_x, ma_y, mtype='image', 
+                            extent='auto', axlabel=None, aylabel=None,
+                            figsize='auto'):
+        assert mtype in ['matrix', 'image']
+        n_x, n_y  = len(ma_x), len(ma_y)
+        nn_x, nn_y, n_ph, n_am = hipermatrix.shape
+        assert n_x == nn_x
+        assert n_y == nn_y
+        vmin, vmax = np.nanmin(hipermatrix), np.nanmax(hipermatrix)
+        if vmin == vmax:
+            vmin, vmax = 0, 1
+            print('normalizado')
+        if vmin < 0:
+            vmax = max(-vmin, vmax)
+            vmin = -vmax
+        else:
+            self.cmap = 'inferno'
+        if mtype=='image' and extent=='auto':
+            extent = (0, n_ph, 0, n_am)
+        if mtype=='matrix' and (axlabel is None or aylabel is None):
+            axlabel = np.arange(n_ph)
+            aylabel = np.arange(n_am)
+            
+        if figsize=='auto':
+            figsize=(n_x*1.5, n_y*1.5)
+        fig, ax = plt.subplots(n_y, n_x, figsize=figsize)
+        for ft_x in range(n_x):
+            for ft_y in range(n_y):
+                matris = hipermatrix[ft_x, ft_y]
+                # matris[np.isnan(matris)] = 0. # not correcting.
+                if mtype=='matrix':
+                    ax[ft_y, ft_x].imshow(matris, cmap=self.cmap, origin='lower',
+                                        vmin=vmin, vmax=vmax, aspect='auto')
+                    ax[ft_y, ft_x].set_yticks(range(n_ph))
+                    ax[ft_y, ft_x].set_xticks(range(n_am))
+                    ax[ft_y, ft_x].set_yticklabels(axlabel)
+                    ax[ft_y, ft_x].set_xticklabels(aylabel, rotation=60)
+                elif mtype=='image':
+                    ax[ft_y, ft_x].imshow(matris, cmap=self.cmap, origin='lower',
+                                        vmin=vmin, vmax=vmax, aspect='auto',
+                                        extent=extent)
+                if ft_y == (n_y-1):
+                    ax[ft_y, ft_x].set_xlabel(
+                        ma_x[ft_x])
+                else:
+                    ax[ft_y, ft_x].set_xticklabels([])
+                if ft_x == 0:
+                    ax[ft_y, ft_x].set_ylabel(
+                        ma_y[ft_y])
+                else:
+                    ax[ft_y, ft_x].set_yticklabels([])
+        return fig
+
+    def compute_band_connectivity(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120)):
         # Check which bands there are:
         # TODO: add dependency with PAC_connect and remove this.
         bands_phase = self.inverse_band_check(f_pha)
         bands_amp = self.inverse_band_check(f_amp)
-        _, ax = plt.subplots(nrows=len(bands_amp), ncols=len(bands_phase),
-                             figsize=(6*len(bands_phase), 6*len(bands_amp)))
         fpha_ref = np.linspace(f_pha[0], f_pha[1], hipermatrix.shape[-1])
         famp_ref = np.linspace(f_amp[0], f_amp[1], hipermatrix.shape[-2])
         bc = []
-        for i, fas in enumerate(bands_phase):
+        for fas in bands_phase:
             cosa = []
-            for j, famp in enumerate(bands_amp):
-                row = len(bands_amp)-1-j
+            for famp in bands_amp:
                 limits_phas = self.bands[fas]
                 limits_amp = self.bands[famp]
                 mask = np.outer((fpha_ref <= limits_phas[1]) & (fpha_ref > limits_phas[0]),
                                 (famp_ref <= limits_amp[1]) & (famp_ref > limits_amp[0]))
                 matrix = np.nanmean(hipermatrix[:, :, mask.T], axis=-1)
-                ax[row, i].imshow(matrix.T, origin='lower')
-                # el T es necesario para que la banda de origen sea el eje X
-                if row == (len(bands_amp)-1):
-                    ax[row, i].set_xlabel(fas)
-                if i == 0:
-                    ax[row, i].set_ylabel(famp)
-                ax[row, i].set_yticks(range(self.n_chan))
-                ax[row, i].set_xticks(range(self.n_chan))
-                ax[row, i].set_yticklabels(self.channels)
-                ax[row, i].set_xticklabels(self.channels, rotation=60)
                 cosa.append(matrix.T)
-            bc.append(cosa)
+            bc.append(np.array(cosa))
         return bc
+
+    def display_band_connectivity(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120)):
+        # Check which bands there are:
+        # TODO: add dependency with PAC_connect and remove this.
+        bands_phase = self.inverse_band_check(f_pha)
+        bands_amp = self.inverse_band_check(f_amp)
+        figsize=(6*len(bands_phase), 6*len(bands_amp))
+        bc = np.array(self.compute_band_connectivity(hipermatrix, f_pha=f_pha, f_amp=f_amp))
+        fig = self.plot_multiax_matrix(bc, ma_x=bands_phase, ma_y=bands_amp, mtype='matrix', 
+              axlabel=self.channels, aylabel=self.channels, figsize=figsize)
+        plt.show()
+        return fig
 
     def display_avg_connectivity(self, hipermatrix):
         _, ax = plt.subplots(figsize=(7, 7))
@@ -190,6 +242,7 @@ class BandConnectivityPlotter(object):
         ax.set_xticklabels(self.channels, rotation=60)
         plt.colorbar(f)
 
+
     def plot_connect_hipermatrix(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120), filename='untitled'):
         """Plots the hipermatrix connectivity.
 
@@ -203,40 +256,18 @@ class BandConnectivityPlotter(object):
             hipermatrix (numpy.ndarray): PAC connectivity matrix.
             f_pha (tuple, optional): Range of frequencies for phase. Defaults to (2,20).
             f_amp (tuple, optional): Range of frequencies for amplitude. Defaults to (15,120).
-            filename (str, optional): Filename to save as pdf. Defaults to 'untitled'.
+            filename (str, optional): Filename to save as pdf. Defaults to 'untitled'. Choose None for not saving.
         """
-        n_chan, _, _, _ = hipermatrix.shape
-        fig, ax = plt.subplots(
-            n_chan, n_chan, figsize=(n_chan*1.5, n_chan*1.5))
-        vmin, vmax = np.nanmin(hipermatrix), np.nanmax(hipermatrix)
-        if vmin == vmax:
-            vmin, vmax = 0, 1
-            print('normalizado')
-        if vmin < 0:
-            vmax = max(-vmin, vmax)
-            vmin = -vmax
-        else:
-            self.cmap = 'inferno'
-        for giving_phase in range(n_chan):
-            for receiving_amp in range(n_chan):
-                matris = hipermatrix[giving_phase, receiving_amp]
-                # matris[np.isnan(matris)] = 0. # not correcting.
-                ax[receiving_amp, giving_phase].imshow(matris, cmap=self.cmap, origin='lower',
-                                                       vmin=vmin, vmax=vmax, aspect='auto',
-                                                       extent=(f_pha[0], f_pha[1], f_amp[0], f_amp[1]))
-                if receiving_amp == (n_chan-1):
-                    ax[receiving_amp, giving_phase].set_xlabel(
-                        self.channels[giving_phase])
-                else:
-                    ax[receiving_amp, giving_phase].set_xticklabels([])
-                if giving_phase == 0:
-                    ax[receiving_amp, giving_phase].set_ylabel(
-                        self.channels[receiving_amp])
-                else:
-                    ax[receiving_amp, giving_phase].set_yticklabels([])
+        n_chan, n_chan_1 , _ , _ = hipermatrix.shape
+        assert n_chan == n_chan_1 
+        fig = self.plot_multiax_matrix(hipermatrix, ma_x = self.channels[:n_chan], 
+                                    ma_y = self.channels[:n_chan],
+                                    extent=(f_pha[0], f_pha[1], f_amp[0], f_amp[1]),
+                                    mtype='image')
         # plt.tight_layout()
         plt.show()
-        fig.savefig(f'{filename}.pdf')
+        if filename is not None:
+            fig.savefig(f'{filename}.pdf')
 
 
 class Head(PatchCollection):
