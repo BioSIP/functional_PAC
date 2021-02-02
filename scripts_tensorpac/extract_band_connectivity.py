@@ -47,6 +47,10 @@ bandas = {'Delta': (0.5, 4),
         'Epsilon': (100, 200)}
 
 
+# guardar coordenadas:
+# coords_xy = pd.DataFrame( np.c_[arr.names, np.array([list(arr.convert_sph_xy(el)) for el in arr.pos])], columns=['name', 'x', 'y'])
+# coords_xy.to_csv('coords_xy.csv')
+
 hey = PAC_connect(data_sig, electrodes)
 band_connectivity_dict = hey.extract_band_connectivity(bands=bandas)
 #%% para plotear: 
