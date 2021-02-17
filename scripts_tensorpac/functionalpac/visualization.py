@@ -211,7 +211,7 @@ class BandConnectivityPlotter(object):
                 matrix = np.nanmean(hipermatrix[:, :, mask.T], axis=-1)
                 cosa.append(matrix.T)
             bc.append(np.array(cosa))
-        return bc
+        return bc, (bands_phase, bands_amp)
 
     def display_band_connectivity(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120)):
         # Check which bands there are:
@@ -219,7 +219,7 @@ class BandConnectivityPlotter(object):
         bands_phase = self.inverse_band_check(f_pha)
         bands_amp = self.inverse_band_check(f_amp)
         figsize=(6*len(bands_phase), 6*len(bands_amp))
-        bc = np.array(self.compute_band_connectivity(hipermatrix, f_pha=f_pha, f_amp=f_amp))
+        bc, _ = np.array(self.compute_band_connectivity(hipermatrix, f_pha=f_pha, f_amp=f_amp))
         fig = self.plot_multiax_matrix(bc, ma_x=bands_phase, ma_y=bands_amp, mtype='matrix', 
               axlabel=self.channels, aylabel=self.channels, figsize=figsize)
         plt.show()
