@@ -48,6 +48,7 @@ bandas = {'Delta': (0.5, 4),
 
 
 # guardar coordenadas:
+# arr = EEGarray(electrodes, projection='lambert')
 # coords_xy = pd.DataFrame( np.c_[arr.names, np.array([list(arr.convert_sph_xy(el)) for el in arr.pos])], columns=['name', 'x', 'y'])
 # coords_xy.to_csv('coords_xy.csv')
 
