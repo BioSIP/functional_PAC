@@ -96,8 +96,9 @@ if __name__ == "__main__":
         for subject_id in range(n_subj):
             name = filename[4:-4]
             f_stimuli = int(name.split('_')[1])
-
-            p = Pac(f_pha=[f_stimuli-.5, f_stimuli+.5], f_amp=(f_init, f_end, f_res, f_res), dcomplex='hilbert')
+            f_init = f_stimuli
+            f_range = np.logspace(np.log10(f_init-.1), np.log10(f_end+10))
+            p = Pac(f_pha=[f_stimuli-.5, f_stimuli+.5], f_amp=f_range, dcomplex='hilbert')
 
             if os.path.isfile(os.path.join(save_path, f'{subject_id}_{name}.npy')):
                 continue
@@ -109,7 +110,7 @@ if __name__ == "__main__":
             bar.set_description(f'Subject {subject_id}_{name} PAC')
             processed_files.append(f'{subject_id}_{name}')
             # tamaños:
-            size_pha, size_amp = 1, len(np.arange(f_init, f_end, f_res)) - 1
+            size_pha, size_amp = 1, len(f_range) - 1
 
             if batches:
                 pass  # TODO
@@ -123,13 +124,15 @@ if __name__ == "__main__":
 
                 subject_pac = np.zeros((n_chan, size_amp, size_pha))
                 for chan in range(n_chan):
-                    p.idpac = (1, 2, 4)  # for MVL with surrogate.
+                    # p.idpac = (1, 2, 4)  # for MVL with surrogate.
+                    p.idpac = (2, 2, 4) # for Modulation Index with surrogate
                     # compute only the pac without filtering
                     xpac = p.fit(phases, amplitudes[chan], n_perm=n_perms, verbose="WARNING")
                     subject_pac[chan] = xpac.mean(-1)
 
             np.save(os.path.join(save_path, f'{subject_id}_{name}.npy'), subject_pac.mean(-1))
             os.remove(lock_filename_path)
+            np.save(os.path.join(save_path, f'xrange_{f_stimuli}.npy'))
     with open(os.path.join(save_path,"{}_processed.txt".format(socket.gethostname())), "w") as output:
         output.write(str(processed_files))
 # %%
