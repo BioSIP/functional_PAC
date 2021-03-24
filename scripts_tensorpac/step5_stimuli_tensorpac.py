@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
             np.save(os.path.join(save_path, f'{subject_id}_{name}.npy'), subject_pac.mean(-1))
             os.remove(lock_filename_path)
-            np.save(os.path.join(save_path, f'xrange_{f_stimuli}.npy'))
+            np.save(os.path.join(save_path, f'frange_{f_stimuli}.npy'), f_range)
     with open(os.path.join(save_path,"{}_processed.txt".format(socket.gethostname())), "w") as output:
         output.write(str(processed_files))
 # %%
