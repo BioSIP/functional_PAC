@@ -38,8 +38,8 @@ def preprocessing(data, ref_channel=31, fs=500, cut=500, normalization=True, fil
             if normalization:
                 stdr = np.std(batch_data[subject, channel, :])
                 stdr[stdr==0.]=1.
-                batch_data[subject, channel, :] = (batch_data[subject, channel, :] - (
-                        np.mean(batch_data[subject, channel, :]) / stdr)
+                batch_data[subject, channel, :] = (batch_data[subject, channel, :] - 
+                        np.mean(batch_data[subject, channel, :]) )/ stdr
             # Filtering
             if filter:
                 batch_data[subject, channel, :] = signal.sosfilt(sos_lp, batch_data[subject, channel, :])
