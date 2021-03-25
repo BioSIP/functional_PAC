@@ -125,7 +125,8 @@ if __name__ == "__main__":
                 subject_pac = np.zeros((n_chan, size_amp, size_pha))
                 for chan in range(n_chan):
                     # p.idpac = (1, 2, 4)  # for MVL with surrogate.
-                    p.idpac = (2, 2, 4) # for Modulation Index with surrogate
+                    # p.idpac = (1, 2, 4) # for Modulation Index with surrogate
+                    p.idpac = (6, 2, 4) # for Modulation Index with surrogate
                     # compute only the pac without filtering
                     xpac = p.fit(phases, amplitudes[chan], n_perm=n_perms, verbose="WARNING")
                     subject_pac[chan] = xpac.mean(-1)
