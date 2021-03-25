@@ -37,8 +37,8 @@ def preprocessing(data, ref_channel=31, fs=500, cut=500, normalization=True, fil
             # Normalization
             if normalization:
                 stdr = np.std(batch_data[subject, channel, :])
-                stdr[stdr==0]=1
-                batch_data[subject, channel, :] = batch_data[subject, channel, :] - (
+                stdr[stdr==0.]=1.
+                batch_data[subject, channel, :] = (batch_data[subject, channel, :] - (
                         np.mean(batch_data[subject, channel, :]) / stdr)
             # Filtering
             if filter:
@@ -130,7 +130,7 @@ if __name__ == "__main__":
                     # p.idpac = (1, 2, 4) # for Modulation Index with surrogate
                     p.idpac = (6, 2, 4) # for Modulation Index with surrogate
                     # compute only the pac without filtering
-                    xpac = p.fit(phases, amplitudes[chan], n_perm=n_perms, verbose="WARNING")
+                    xpac = p.fit(phases, amplitudes[chan], n_perm=n_perms, verbose="WARNING", n_jobs=n_jobs)
                     subject_pac[chan] = xpac.mean(-1)
 
             np.save(os.path.join(save_path, f'{subject_id}_{name}.npy'), subject_pac.mean(-1))
