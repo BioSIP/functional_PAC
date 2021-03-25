@@ -37,7 +37,8 @@ def preprocessing(data, ref_channel=31, fs=500, cut=500, normalization=True, fil
             # Normalization
             if normalization:
                 stdr = np.std(batch_data[subject, channel, :])
-                stdr[stdr==0.]=1.
+                if stdr==0:
+                    stdr = 1
                 batch_data[subject, channel, :] = (batch_data[subject, channel, :] - 
                         np.mean(batch_data[subject, channel, :]) )/ stdr
             # Filtering
