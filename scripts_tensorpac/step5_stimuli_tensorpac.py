@@ -72,6 +72,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--normalization", action="store_true", help="Normalize EEG")
     parser.add_argument("-f", "--filter", action="store_true", help="Filter EEG")
     parser.add_argument("-r", "--reverse", action="store_true", help="Whether to reverse files order")
+    parser.add_argument("-p", "--pac_measure", type=int, default=1)
     args = parser.parse_args()
     print(args)
     path = args.input_folder
@@ -81,6 +82,7 @@ if __name__ == "__main__":
     f_end = args.f_end
     f_res = args.f_res
     n_jobs = args.jobs_number
+    pac_measure = args.pac_measure
     cut = args.cut
     files = [x for x in os.listdir(path) if x.endswith(".npy")]
     if args.reverse:
@@ -128,8 +130,8 @@ if __name__ == "__main__":
                 subject_pac = np.zeros((n_chan, size_amp, size_pha))
                 for chan in range(n_chan):
                     # p.idpac = (1, 2, 4)  # for MVL with surrogate.
-                    # p.idpac = (1, 2, 4) # for Modulation Index with surrogate
-                    p.idpac = (6, 2, 4) # for Modulation Index with surrogate
+                    p.idpac = (pac_measure, 2, 4) # for Modulation Index with surrogate
+                    # p.idpac = (6, 2, 4) # for Modulation Index with surrogate
                     # compute only the pac without filtering
                     xpac = p.fit(phases, amplitudes[chan], n_perm=n_perms, verbose="WARNING", n_jobs=n_jobs)
                     subject_pac[chan] = xpac.mean(-1)
