@@ -13,7 +13,7 @@ bands = {'Delta': (0.5, 4),
          'Beta': (12, 25),
          'Gamma': (25, 140)}
 
-ct = 20
+ct = 30
 test = ttest_ind
 n_iter = 10000
 alpha = .05
