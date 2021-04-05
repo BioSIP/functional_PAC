@@ -17,7 +17,7 @@ path = '/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/result
 # for ct in [10, 20, 30]:
     # for stimulus in [2, 8]:
 ct = 30
-stimulus = 8
+stimulus = 20
 formato='pdf'
 data = np.load(os.path.join(path, f's{stimulus}/p1e4_ct{ct}/quantile_p1e4_ct{ct}_s{stimulus}.npy'))
 
@@ -32,17 +32,18 @@ hey = PAC_connect(data_sig, electrodes)
 # plot_head_diagram(mm['Alpha']['Gamma'], electrodes, show_topo=True, show_electrodes=True,
 #                       show_head=True, show_connect=True, projection='lambert', theme='dark',
 #                       show_brain=True, title=None, savefig=None)
-fig_route = os.path.join(path, f's{stimulus}/p1e4_ct{ct}/head_connect_ct{ct}_s{stimulus}.{formato}')
-plot_head_connectivity(hey, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True, theme='dark',
-                        show_head=True, show_connect=True, projection='lambert', vrange=(-.5, .5),
-                        show_brain=True, savefig=fig_route, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
+# fig_route = os.path.join(path, f's{stimulus}/p1e4_ct{ct}/head_connect_ct{ct}_s{stimulus}.{formato}')
+# plot_head_connectivity(hey, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True, theme='dark',
+#                         show_head=True, show_connect=True, projection='lambert', vrange=(-.5, .5),
+#                         show_brain=True, savefig=fig_route, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
 
 #%% 
 
-plotter = BandConnectivityPlotter()
+plotter = BandConnectivityPlotter(cmap='RdBu')
 
 mm = plotter.display_band_connectivity(
     data_sig, f_pha=(2, 20), f_amp=(15, 120))
+mm.savefig(os.path.join(path, f's{stimulus}/p1e4_ct{ct}/connectivity_p1e4_ct{ct}_s{stimulus}.pdf'))
 # %%
 plotter = BandConnectivityPlotter()
 plotter.plot_pac(data_sig, channels=[(15, 0), (1, 10)])
@@ -72,9 +73,9 @@ electrodes = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5',
                             'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'PZ',
                             'P4', 'P8', 'PO9', 'O1', 'OZ', 'O2', 'PO10']
 
-path = '/home/pakitochus/Dropbox/Investigacion/Experimentos/202010_Functional_PAC/results/statistics'
+path = '/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/results/defs/s2/p1e4_ct30'
 
-data = np.load(os.path.join(path, 'quantile_p1e4_ct10.npy'))
+data = np.load(os.path.join(path, 'quantile_p1e4_ct30_s2.npy'))
 
 th = 0.05/(2*31*31*2)
 data_sig = data.copy()
