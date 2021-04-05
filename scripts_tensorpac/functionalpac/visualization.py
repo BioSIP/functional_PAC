@@ -144,6 +144,7 @@ class BandConnectivityPlotter(object):
                             extent='auto', axlabel=None, aylabel=None,
                             figsize='auto'):
         assert mtype in ['matrix', 'image']
+        hipermatrix = np.array(hipermatrix)
         n_x, n_y  = len(ma_x), len(ma_y)
         nn_x, nn_y, n_ph, n_am = hipermatrix.shape
         assert n_x == nn_x
@@ -162,13 +163,13 @@ class BandConnectivityPlotter(object):
         if mtype=='matrix' and (axlabel is None or aylabel is None):
             axlabel = np.arange(n_ph)
             aylabel = np.arange(n_am)
-            
         if figsize=='auto':
             figsize=(n_x*1.5, n_y*1.5)
         fig, ax = plt.subplots(n_y, n_x, figsize=figsize)
         for ft_x in range(n_x):
             for ft_y in range(n_y):
                 matris = hipermatrix[ft_x, ft_y]
+                # print(np.isnan(matris).all())
                 # matris[np.isnan(matris)] = 0. # not correcting.
                 if mtype=='matrix':
                     ax[ft_y, ft_x].imshow(matris, cmap=self.cmap, origin='lower',
@@ -185,12 +186,14 @@ class BandConnectivityPlotter(object):
                     ax[ft_y, ft_x].set_xlabel(
                         ma_x[ft_x])
                 else:
-                    ax[ft_y, ft_x].set_xticklabels([])
+                    # ax[ft_y, ft_x].set_xticklabels([])
+                    pass
                 if ft_x == 0:
                     ax[ft_y, ft_x].set_ylabel(
                         ma_y[ft_y])
                 else:
-                    ax[ft_y, ft_x].set_yticklabels([])
+                    # ax[ft_y, ft_x].set_yticklabels([])
+                    pass
         return fig
 
     def compute_band_connectivity(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120)):
@@ -216,10 +219,10 @@ class BandConnectivityPlotter(object):
     def display_band_connectivity(self, hipermatrix, f_pha=(2, 20), f_amp=(15, 120)):
         # Check which bands there are:
         # TODO: add dependency with PAC_connect and remove this.
-        bands_phase = self.inverse_band_check(f_pha)
-        bands_amp = self.inverse_band_check(f_amp)
+        # bands_phase = self.inverse_band_check(f_pha)
+        # bands_amp = self.inverse_band_check(f_amp)
+        bc, (bands_phase, bands_amp) = self.compute_band_connectivity(hipermatrix, f_pha=f_pha, f_amp=f_amp)
         figsize=(6*len(bands_phase), 6*len(bands_amp))
-        bc, _ = np.array(self.compute_band_connectivity(hipermatrix, f_pha=f_pha, f_amp=f_amp))
         fig = self.plot_multiax_matrix(bc, ma_x=bands_phase, ma_y=bands_amp, mtype='matrix', 
               axlabel=self.channels, aylabel=self.channels, figsize=figsize)
         plt.show()
