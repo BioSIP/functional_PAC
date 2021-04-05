@@ -179,7 +179,7 @@ def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, cha
     TODO: safe check of arguments.
     """
     filenames = [fi for fi in os.listdir(path) if fi.endswith('npy')]
-    r = re.compile(f'\d*_{age}_{stimulus}_{group}.npy')
+    r = re.compile(f'\d*_{age}_{stimulus}[sb]_{group}.npy')
     filenames_r = list(filter(r.match, filenames))
     N = len(filenames_r)
     data = np.zeros((N, len(channels), len(channels), 52, 50))
