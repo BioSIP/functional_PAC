@@ -41,5 +41,5 @@ cbpt = ClusterBasedPermutationTesting(n_iter=n_iter, twosided=True,
                                       threshold_pac=th_pac)
 pvalu, quantile = cbpt.fit(X, y)
 
-np.save(f'pvalue_p1e4_ct{ct}_{STIMULUS}.npy', pvalu)
-np.save(f'quantile_p1e4_ct{ct}_{STIMULUS}.npy', quantile)
+np.save(f'pvalue_p1e4_ct{ct}_s{STIMULUS}.npy', pvalu)
+np.save(f'quantile_p1e4_ct{ct}_s{STIMULUS}.npy', quantile)
