@@ -26,16 +26,16 @@ th = 0.025 #twosided
 data_sig = data.copy()
 data_sig[(data > th) & (data < 1-th)] = np.nan
 data_sig = data_sig-0.5
-
+#%%
 hey = PAC_connect(data_sig, electrodes)
 # mm = hey.extract_band_connectivity(DEFAULT_BANDS)
 # plot_head_diagram(mm['Alpha']['Gamma'], electrodes, show_topo=True, show_electrodes=True,
 #                       show_head=True, show_connect=True, projection='lambert', theme='dark',
 #                       show_brain=True, title=None, savefig=None)
-# fig_route = os.path.join(path, f's{stimulus}/p1e4_ct{ct}/head_connect_ct{ct}_s{stimulus}.{formato}')
-# plot_head_connectivity(hey, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True, theme='dark',
-#                         show_head=True, show_connect=True, projection='lambert', vrange=(-.5, .5),
-#                         show_brain=True, savefig=fig_route, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
+fig_route = os.path.join(path, f's{stimulus}/p1e4_ct{ct}/head_connect_ct{ct}_s{stimulus}.{formato}')
+plot_head_connectivity(hey, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True, theme='dark',
+                        show_head=True, show_connect=True, projection='lambert', vrange=(-.5, .5),
+                        show_brain=True, savefig=fig_route, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
 
 #%% 
 
@@ -49,7 +49,8 @@ plotter = BandConnectivityPlotter()
 plotter.plot_pac(data_sig, channels=[(15, 0), (1, 10)])
 
 # %%
-plotter.plot_connect_hipermatrix(data_sig, filename='quantile_p1e4_ct30_s8')
+plotter = BandConnectivityPlotter(cmap='RdBu')
+plotter.plot_connect_hipermatrix(data_sig, filename=f'quantile_p1e4_ct{ct}_s{stimulus}')
 
 # %%
 
