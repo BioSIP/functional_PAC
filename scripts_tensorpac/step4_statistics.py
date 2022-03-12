@@ -27,11 +27,11 @@ channel_n = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'F
 
 # ctl_path = '/media/NAS/home/marco/projects/PAC_Paper/functional_PAC/data/tensorpac'
 # dlx_path = '/media/NAS/home/marco/projects/PAC_Paper/functional_PAC/data/tensorpac2'
-ctl_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/tensorpac3'
-dlx_path = '/home/pakitochus/Investigacion/Databases/dislexia/functional_PAC/data/tensorpac3'
-datos_ctl = load_subgroup(ctl_path, group='C', stimulus=STIMULUS,
+ctl_path = '/home/pakitochus/Universidad/Investigación/Databases/dislexia/functional_PAC/data/tensorpac3'
+dlx_path = '/home/pakitochus/Universidad/Investigación/Databases/dislexia/functional_PAC/data/tensorpac3'
+datos_ctl, ids_ctl = load_subgroup(ctl_path, group='C', stimulus=STIMULUS,
                           purge=True, nan=0, channels=channel_n)
-datos_dlx = load_subgroup(dlx_path, group='RD',
+datos_dlx, ids_dlx = load_subgroup(dlx_path, group='RD',
                           stimulus=STIMULUS, purge=True, nan=0, channels=channel_n)
 
 X = np.r_[datos_ctl, datos_dlx]
@@ -43,3 +43,5 @@ pvalu, quantile = cbpt.fit(X, y)
 
 np.save(f'pvalue_p1e4_ct{ct}_s{STIMULUS}.npy', pvalu)
 np.save(f'quantile_p1e4_ct{ct}_s{STIMULUS}.npy', quantile)
+
+# %%
