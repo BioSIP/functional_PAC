@@ -2,7 +2,7 @@
 import numpy as np
 from scipy.stats import ttest_ind
 
-from functionalpac.utils import load_subgroup
+from functionalpac.utils import load_subgroup, DEFAULT_BANDS
 from functionalpac.statistics import ClusterBasedPermutationTesting
 
 global bands
@@ -43,5 +43,40 @@ pvalu, quantile = cbpt.fit(X, y)
 
 np.save(f'pvalue_p1e4_ct{ct}_s{STIMULUS}.npy', pvalu)
 np.save(f'quantile_p1e4_ct{ct}_s{STIMULUS}.npy', quantile)
+
+# %% REGRESSION 
+from functionalpac.utils import PAC_object
+import pandas as pd
+
+bc_df = pd.DataFrame()
+for ix, dats in enumerate(datos_ctl):
+    pac0 = PAC_object(dats, channels=channel_n, fs=500, f_pha=(2,20), f_amp=(15,120))
+    bc = pac0.extract_band_connectivity()
+    for pha_band in bc.keys():
+        for amp_band in bc[pha_band].keys():
+            aux = pd.DataFrame(bc[pha_band][amp_band], index=channel_n, columns=channel_n)
+            aux = aux.stack().reset_index()
+            aux.columns = ['Channel_0', 'Channel_1', 'value']
+            aux['pha_band'] = pha_band
+            aux['amp_band'] = amp_band
+            aux['ID'] = ids_ctl[ix]
+            aux['class'] = 'CTL'
+            bc_df = pd.concat((bc_df, aux))
+
+for ix, dats in enumerate(datos_dlx):
+    pac0 = PAC_object(dats, channels=channel_n, fs=500, f_pha=(2,20), f_amp=(15,120))
+    bc = pac0.extract_band_connectivity()
+    for pha_band in bc.keys():
+        for amp_band in bc[pha_band].keys():
+            aux = pd.DataFrame(bc[pha_band][amp_band], index=channel_n, columns=channel_n)
+            aux = aux.stack().reset_index()
+            aux.columns = ['Channel_0', 'Channel_1', 'value']
+            aux['pha_band'] = pha_band
+            aux['amp_band'] = amp_band
+            aux['ID'] = ids_dlx[ix]
+            aux['class'] = 'DLX'
+            bc_df = pd.concat((bc_df, aux))
+# bc_ctl = [PAC_object(el, channels=channel_n, fs=500, f_pha=(2,20), f_amp=(15,120)).extract_band_connectivity() for el in datos_ctl]
+# bc_dlx = [PAC_object(el, channels=channel_n, fs=500, f_pha=(2,20), f_amp=(15,120)).extract_band_connectivity() for el in datos_dlx]
 
 # %%
