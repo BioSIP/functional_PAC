@@ -23,7 +23,6 @@ import numpy as np
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import LinearSegmentedColormap
-from nilearn.plotting.cm import _cmap_d as nilearn_cmaps
 from scipy.stats import multivariate_normal
 
 from .utils import DEFAULT_BANDS
@@ -345,7 +344,7 @@ class EEGarray(PatchCollection):
     """
 
     def __init__(self, electrodes, layout='ten_twenty', marker_size=0.03,
-                 projection='simple', ax=None):
+                 projection='simple', ax=None, cmap=None):
         """[summary]
         """
         self.layout = layout
@@ -368,7 +367,10 @@ class EEGarray(PatchCollection):
                              np.arange(-1.5, 1.5, 0.05))
         zz = np.zeros(xx.shape)
         self.topodist = dict(xx=xx, yy=yy, zz=zz)
-        self.cmap = cm.get_cmap('coolwarm')
+        if cmap==None:
+            self.cmap = cm.get_cmap('coolwarm')
+        else:
+            self.cmap = cm.get_cmap(cmap)
         PatchCollection.__init__(
             self, self.patches, match_original=True, antialiaseds=True)
         self.ax.add_collection(self)
@@ -377,8 +379,8 @@ class EEGarray(PatchCollection):
         return len(self.names)
 
     def get_positions(self, electrodes):
-        path_data = 'functionalpac/data/'
-        eeg_layout = self.load_dict(path_data+self.layout)
+        path_data = os.path.join(os.path.dirname(__file__),'data', self.layout)
+        eeg_layout = self.load_dict(path_data)
         names = [el for i in range(len(electrodes)) for el in list(eeg_layout.keys())
                  if el.upper() == electrodes[i].upper()]
         positions = [eeg_layout[el] for el in names]
@@ -429,9 +431,10 @@ class EEGarray(PatchCollection):
 
 class Topoplot(object):
 
-    def __init__(self, adjacency, eegarray, cov=None, ax=None, vrange=None):
+    def __init__(self, adjacency, eegarray, cov=None, ax=None, vrange=None, cmap='coolwarm'):
         self.adjacency = adjacency
         self.eegarray = eegarray
+        self.cmap = cmap
         xx, yy = np.meshgrid(np.arange(-1.6, 1.6, 0.05),
                              np.arange(-1.6, 1.6, 0.05))
         zz = np.zeros(xx.shape)
@@ -513,7 +516,7 @@ class Topoplot(object):
         vmin, vmax = self.get_min_max()
         im = self.ax.pcolormesh(self.topodist['xx'], self.topodist['yy'],
                                 self.topodist['zz'], vmin=vmin, vmax=vmax,
-                                cmap='coolwarm', antialiaseds=True)  # , shading='gouraud')
+                                cmap=self.cmap, antialiaseds=True, shading='auto')
         if area is not None:
             if area == 'lambert' and self.eegarray.projection == 'lambert':
                 patch = self.lambert_patch()
@@ -547,23 +550,27 @@ class BrainPatch(SVGPatch):
                 self.route, f'data/brain_{self.projection}_{theme}')
             self.collection = self.load_patch(brainpath)
             self.collection.set_alpha(alpha)
+            # self.collection._alpha = alpha
+            # self.collection.set_facecolor(self.collection.get_facecolor())
+            #self.collection.set_alpha(alpha)
         else:
             self.collection = None
         if clip:
             self.collection.set_clip_path(clip)
             self.collection.set_clip_on(True)
         if color:
-            self.collection.set_color(color)
+            self.collection.set_facecolor(color)
 
 
 class HeadPlot(object):
 
     def __init__(self, adjacency, eegarray, layout='ten_twenty', marker_size=0.03,
-                 projection='simple', theme='light', ax=None, vrange=None):
+                 projection='simple', theme='light', ax=None, cmap=None, vrange=None):
         self.adjacency = adjacency
         self.projection = projection
         self.marker_size = marker_size
         self.layout = layout
+        self.cmap = cmap
         assert theme in ['light', 'dark']
         self.theme = theme
         if ax is not None:
@@ -573,13 +580,13 @@ class HeadPlot(object):
         self.vrange = vrange
         if type(eegarray) == list:
             self.eegarray = EEGarray(eegarray, layout=self.layout, projection=self.projection,
-                                     marker_size=self.marker_size, ax=self.ax)
+                                     marker_size=self.marker_size, ax=self.ax, cmap=self.cmap)
         else:
             self.eegarray = eegarray
 
     def plot_topo(self):
         self.topo = Topoplot(self.adjacency, self.eegarray,
-                             cov=None, ax=self.ax, vrange=self.vrange)
+                             cov=None, ax=self.ax, vrange=self.vrange, cmap=self.cmap)
         self.topo.plot_topoplot(area='lambert')
 
     def show_head(self):
