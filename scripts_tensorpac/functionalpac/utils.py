@@ -193,4 +193,4 @@ def load_subgroup(path, stimulus=2, group='C', age=7, purge=False, nan=None, cha
             pac.purge_decomposition()
             defin = pac.purged_mat
         data[i] = defin
-    return data
+    return data, ids
