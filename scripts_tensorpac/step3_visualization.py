@@ -16,8 +16,8 @@ path = '/home/pakitochus/Investigacion/Experimentos/202010_Functional_PAC/result
 
 # for ct in [10, 20, 30]:
     # for stimulus in [2, 8]:
-ct = 30
-stimulus = 20
+ct = 10
+stimulus = 2
 formato='pdf'
 data = np.load(os.path.join(path, f's{stimulus}/p1e4_ct{ct}/quantile_p1e4_ct{ct}_s{stimulus}.npy'))
 
@@ -26,13 +26,24 @@ th = 0.025 #twosided
 data_sig = data.copy()
 data_sig[(data > th) & (data < 1-th)] = np.nan
 data_sig = data_sig-0.5
+
+#%% 
+eliminate = ['Fp1', 'Fp2', 'OZ', 'O1', 'O2', 'PO9', 'PO10']
+electrodes = np.array(electrodes)
+mask = np.array([electrodes!=el for el in eliminate]).all(axis=0)
+
+data_sig = data_sig[mask]
+data_sig = data_sig[:,mask]
+
+electrodes = electrodes[mask]
+
 #%%
-hey = PAC_connect(data_sig, electrodes)
+hey = PAC_connect(data_sig, list(electrodes))
 # mm = hey.extract_band_connectivity(DEFAULT_BANDS)
 # plot_head_diagram(mm['Alpha']['Gamma'], electrodes, show_topo=True, show_electrodes=True,
 #                       show_head=True, show_connect=True, projection='lambert', theme='dark',
 #                       show_brain=True, title=None, savefig=None)
-fig_route = os.path.join(path, f's{stimulus}/p1e4_ct{ct}/head_connect_ct{ct}_s{stimulus}.{formato}')
+fig_route = os.path.join(path, f's{stimulus}/p1e4_ct{ct}/head_connect_ct{ct}_s{stimulus}_masked.{formato}')
 plot_head_connectivity(hey, bands=DEFAULT_BANDS, show_topo=True, show_electrodes=True, theme='dark',
                         show_head=True, show_connect=True, projection='lambert', vrange=(-.5, .5),
                         show_brain=True, savefig=fig_route, title=f'PAC Connectivity (CT:{ct}, Stim: {stimulus}Hz)')
