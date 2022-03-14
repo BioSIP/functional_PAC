@@ -104,11 +104,14 @@ class PAC_object(object):
         list_def = [band for band in bands if band in band_set]
         return list_def
 
-    def extract_band_connectivity(self, bands=DEFAULT_BANDS) -> dict:
+    def extract_band_connectivity(self, bands=DEFAULT_BANDS, 
+                        method='mean', threshold=None) -> dict:
         """Extracts the band connectivity of the matrix. 
 
         Args:
             bands (dictionary): dictionary with band information.
+            method (string): method to extract connectivity in ['mean', 'thsum']
+            threshold (float): threshold used for 'thsum' method 
 
         Returns:
             [dict]: dictionary of dictionaries for conexions. 
@@ -127,7 +130,10 @@ class PAC_object(object):
                 limits_amp = bands[famp]
                 mask = np.outer((fpha_ref <= limits_phas[1]) & (fpha_ref > limits_phas[0]),
                                 (famp_ref <= limits_amp[1]) & (famp_ref > limits_amp[0]))
-                matrix = np.nanmean(self.pac_mat[:, :, mask.T], axis=-1)
+                if method=='mean':
+                    matrix = np.nanmean(self.pac_mat[:, :, mask.T], axis=-1)
+                elif method=='thsum':
+                    matrix = np.sum(abs(self.pac_mat[:, :, mask.T])>threshold, axis=-1)
                 cosa[famp] = matrix.T
             bc[fas] = cosa
         return bc
