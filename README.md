@@ -1,5 +1,6 @@
 # functional_PAC
 Análisis de patrones de conectividad funcional PAC en EEG.
+
 Authors: Francisco J. Martínez-Murcia, Marco A. Formoso Trigo and Andrés Ortiz García (BioSiP group)
 
 Ahora mismo tiene 3 módulos: 
