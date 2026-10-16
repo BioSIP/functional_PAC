@@ -31,3 +31,6 @@ If you use this project in academic research, scientific publications, or other 
 The MIT License permits broad reuse, including commercial use, provided its terms are respected. The attribution requirements described above are part of the license; the request to cite this project in academic publications is a recommendation and is not, by itself, an additional legal obligation under the standard MIT License.
 
 For the complete terms and conditions, please refer to the MIT License.
+
+# Acknowledgements
+This work was partly supported by the MINECO/FEDER under the PGC2018-098813-B-C32 project, and by Junta de Andalucı́a under UMA20-FEDERJA-086 and the P18-RT-1624 LEEDUCA project. Work by F.J.M.M. was supported by the MICINN “Juan de la Cierva” Fellowship.
